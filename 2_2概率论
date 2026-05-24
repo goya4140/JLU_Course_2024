@@ -47,3 +47,279 @@
 - n重伯努利试验：独立、重复、两结果（A/$\overline{A}$）
 - 概率公式：$P_n(k)=C_n^k p^k (1-p)^{n-k}$
 - 应用：射击、机床、独立重复试验
+
+
+# 第二章 一维随机变量及其分布
+## 一、随机变量与分布函数
+- 随机变量
+  - 定义：样本空间 → 实数
+  - 表示：X、Y、Z / ξ、η、ζ
+- 分布函数
+  - 定义：$F(x)=P\{X\le x\}$
+  - 性质
+    - $0\le F(x)\le1$
+    - 单调不减
+    - $F(-\infty)=0,\ F(+\infty)=1$
+    - 右连续
+    - $P(x_1<X\le x_2)=F(x_2)-F(x_1)$
+
+## 二、离散型随机变量
+- 定义：取值有限/可列
+- 分布律
+  - 形式：$P(X=x_k)=p_k$
+  - 条件：$p_k\ge0$、$\sum p_k=1$
+- 分布函数：阶梯函数，$F(x)=\sum_{x_k\le x}p_k$
+- 概率公式
+  - $P(X=a)=F(a)-F(a^-)$
+  - $P(X\le a)=F(a)$
+  - $P(X<a)=F(a^-)$
+  - $P(X\ge a)=1-F(a^-)$
+  - $P(X>a)=1-F(a)$
+
+### 常用离散分布
+- 0-1分布：$P(X=1)=p,\ P(X=0)=1-p$
+- 二项分布 $B(n,p)$：$P(X=k)=C_n^k p^k(1-p)^{n-k}$
+- 泊松分布 $P(\lambda)$：$P(X=k)=\dfrac{\lambda^k}{k!}e^{-\lambda}$
+- 几何分布 $G(p)$：$P(X=k)=(1-p)^{k-1}p$（无记忆）
+- 离散均匀：$P(X=x_k)=\dfrac{1}{n}$
+
+### 泊松定理
+- 条件：$n$ 大、$p$ 小、$\lambda=np$
+- 近似：$B(n,p)\approx P(\lambda)$
+- 公式：$C_n^k p^k(1-p)^{n-k}\approx\dfrac{\lambda^k}{k!}e^{-\lambda}$
+
+## 三、连续型随机变量
+- 定义：$F(x)=\displaystyle\int_{-\infty}^x f(t)dt$
+- 概率密度 $f(x)$
+  - 性质：$f(x)\ge0$、$\displaystyle\int_{-\infty}^{+\infty}f(x)dx=1$
+  - $P(a<X\le b)=\displaystyle\int_a^b f(x)dx$
+  - $P(X=a)=0$（单点概率为0）
+- 概率公式
+  - $P(X\le a)=F(a)$
+  - $P(X\ge a)=1-F(a)$
+  - 开闭区间等价
+
+### 常用连续分布
+- 均匀分布 $U(a,b)$
+  - $f(x)=\dfrac{1}{b-a}\ (a<x<b)$
+- 指数分布 $E(\lambda)$
+  - $f(x)=\lambda e^{-\lambda x}\ (x>0)$（无记忆）
+- 正态分布 $N(\mu,\sigma^2)$
+  - 密度：$f(x)=\dfrac{1}{\sqrt{2\pi}\sigma}e^{-\frac{(x-\mu)^2}{2\sigma^2}}$
+  - 标准正态 $N(0,1)$：$\varphi(x)$、$\Phi(x)$
+  - 标准化：$Z=\dfrac{X-\mu}{\sigma}\sim N(0,1)$
+  - $P(a<X<b)=\Phi\left(\dfrac{b-\mu}{\sigma}\right)-\Phi\left(\dfrac{a-\mu}{\sigma}\right)$
+  - 3σ原则：0.68、0.95、0.997
+
+## 四、随机变量函数的分布
+- 离散型：替换取值、合并同值概率
+- 连续型
+  - 分布函数法：$F_Y(y)=P(Y\le y)$ 求导
+  - 公式法：单调函数 $f_Y(y)=f_X(h(y))|h'(y)|$
+  - 正态线性：$X\sim N(\mu,\sigma^2)\Rightarrow aX+b\sim N(a\mu+b,a^2\sigma^2)$
+
+# 第三章 二维随机变量及其分布
+
+## 一、二维随机变量基础
+- 核心定义：由同一样本空间的随机变量X、Y构成向量(X,Y)
+- 联合分布函数：F(x,y)=P{X≤x,Y≤y}
+- 分布函数核心性质：0≤F≤1、单调不减、右连续、矩形概率公式
+- 边缘分布：F_X(x)=F(x,+∞)，F_Y(y)=F(+∞,y)
+- 独立性通用判定：F(x,y)=F_X(x)·F_Y(y)
+## 二、二维离散型随机变量
+- 定义：取值为有限/可列无穷多对
+- 联合分布律：P{X=x_i,Y=y_j}=p_ij，满足p_ij≥0、总和为1
+- 边缘分布律：p_i·=∑_j p_ij，p_·j=∑_i p_ij
+- 独立性判定：p_ij = p_i· · p_·j（对所有i,j）
+- 典型题型：0-1事件表示、掷骰子/摸球场景
+## 三、二维连续型随机变量
+- 定义：存在非负密度函数f(x,y)，使F(x,y)=∬f(u,v)dudv
+- 密度核心性质：f≥0、全平面积分=1、区域概率=二重积分
+- 边缘概率密度：f_X(x)=∫f(x,y)dy，f_Y(y)=∫f(x,y)dx
+- 独立性判定：f(x,y)=f_X(x)·f_Y(y)
+- 重点分布：二维均匀分布、二维正态分布（独立⇔ρ=0）
+## 四、条件分布
+- 离散型条件分布：P{Y=y_j|X=x_i}=p_ij / p_i·
+- 连续型条件密度：f_{X|Y}(x|y)=f(x,y)/f_Y(y)
+- 核心公式：f(x,y)=f_X(x)·f_{Y|X}(y|x)（边缘+条件→联合）
+## 五、随机变量函数的分布
+- 离散型：合并相同Z=g(X,Y)取值的概率
+- 连续型万能法：分布函数法F_Z(z)=P{Z≤z}，求导得密度
+- 三大必考函数：Z=X+Y（卷积公式）、Z=max(X,Y)、Z=min(X,Y)
+- 重要结论：独立正态之和仍为正态分布
+## 六、经典题型解题方法
+- 求常数k：利用归一性（全空间概率=1）
+- 已知边缘+独立→求联合：对应概率直接相乘
+- 已知P(XY=0)=1→锁定X、Y非零同时发生的概率为0
+- 已知X,Y,XY分布→逐格反推联合分布
+
+
+# 第三章 二维随机变量及其分布
+## 一、二维随机变量与分布函数
+- 二维随机变量
+  - 定义：样本空间 → 实数对$(X,Y)$
+- 联合分布函数
+  - 定义：$F(x,y)=P\{X\le x,Y\le y\}$
+  - 几何意义：$(X,Y)$落入$(x,y)$左下方无界矩形的概率
+  - 性质
+    - $0\le F(x,y)\le1$
+    - $F(-\infty,-\infty)=0,\ F(+\infty,+\infty)=1$
+    - 固定$x$：$F(x,-\infty)=0$；固定$y$：$F(-\infty,y)=0$
+    - 对$x、y$单调不减、右连续
+    - $P\{x_1<X\le x_2,y_1<Y\le y_2\}=F(x_2,y_2)-F(x_1,y_2)-F(x_2,y_1)+F(x_1,y_1)$
+- 边缘分布函数
+  - $F_X(x)=F(x,+\infty)$
+  - $F_Y(y)=F(+\infty,y)$
+- 独立性
+  - 定义：$F(x,y)=F_X(x)\cdot F_Y(y)$（对任意$x、y$）
+
+## 二、二维离散型随机变量
+- 定义：取值有限/可列实数对$(x_i,y_j)$
+- 联合分布律
+  - 形式：$P\{X=x_i,Y=y_j\}=p_{ij}$
+  - 条件：$p_{ij}\ge0$、$\sum_{i}\sum_{j}p_{ij}=1$
+- 边缘分布律
+  - $P\{X=x_i\}=p_{i\cdot}=\sum_{j}p_{ij}$
+  - $P\{Y=y_j\}=p_{\cdot j}=\sum_{i}p_{ij}$
+- 独立性
+  - 充要：$p_{ij}=p_{i\cdot}\cdot p_{\cdot j}$（对任意$i、j$）
+
+## 三、二维连续型随机变量
+- 定义：$F(x,y)=\displaystyle\int_{-\infty}^x\int_{-\infty}^y f(u,v)dudv$
+- 联合概率密度$f(x,y)$
+  - 性质：$f(x,y)\ge0$、$\displaystyle\int_{-\infty}^{+\infty}\int_{-\infty}^{+\infty}f(x,y)dxdy=1$
+  - 连续点：$f(x,y)=\dfrac{\partial^2F(x,y)}{\partial x\partial y}$
+  - 区域概率：$P\{(X,Y)\in G\}=\displaystyle\iint_G f(x,y)dxdy$
+- 边缘概率密度
+  - $f_X(x)=\displaystyle\int_{-\infty}^{+\infty}f(x,y)dy$
+  - $f_Y(y)=\displaystyle\int_{-\infty}^{+\infty}f(x,y)dx$
+- 独立性
+  - 充要：$f(x,y)=f_X(x)\cdot f_Y(y)$（几乎处处成立）
+
+### 常用二维分布
+- 二维均匀分布
+  - 定义：有界区域$D$上，$f(x,y)=\dfrac{1}{A}$（$A$为$D$面积）
+- 二维正态分布$N(\mu_1,\mu_2,\sigma_1^2,\sigma_2^2,\rho)$
+  - 密度公式
+  - 边缘：$X\sim N(\mu_1,\sigma_1^2)$，$Y\sim N(\mu_2,\sigma_2^2)$
+  - 独立：$\rho=0$（充要条件）
+
+## 四、条件分布
+- 离散型
+  - $P\{Y=y_j|X=x_i\}=\dfrac{p_{ij}}{p_{i\cdot}}$（$p_{i\cdot}>0$）
+  - $P\{X=x_i|Y=y_j\}=\dfrac{p_{ij}}{p_{\cdot j}}$（$p_{\cdot j}>0$）
+- 连续型
+  - 条件密度：$f_{X|Y}(x|y)=\dfrac{f(x,y)}{f_Y(y)}$、$f_{Y|X}(y|x)=\dfrac{f(x,y)}{f_X(x)}$
+  - 条件分布函数：$F_{X|Y}(x|y)=\displaystyle\int_{-\infty}^x f_{X|Y}(u|y)du$
+
+## 五、二维随机变量函数的分布
+- 离散型
+  - 方法：求$Z=g(X,Y)$取值，合并同值概率
+  - 常用：$Z=X+Y$、$M=\max(X,Y)$、$N=\min(X,Y)$
+- 连续型
+  - 分布函数法：$F_Z(z)=P\{g(X,Y)\le z\}$，求导得$f_Z(z)$
+  - 卷积公式（$Z=X+Y$）：$f_Z(z)=\displaystyle\int_{-\infty}^{+\infty}f(x,z-x)dx$
+- 常用结论
+  - 独立正态：$X\sim N(\mu_1,\sigma_1^2),Y\sim N(\mu_2,\sigma_2^2)\Rightarrow X+Y\sim N(\mu_1+\mu_2,\sigma_1^2+\sigma_2^2)$
+  - 最值分布：$F_M(z)=F_X(z)F_Y(z)$、$F_N(z)=1-[1-F_X(z)][1-F_Y(z)]$
+
+## 六、n维随机变量
+- 定义：$n$维实数向量$(X_1,X_2,\dots,X_n)$
+- 分布函数：$F(x_1,\dots,x_n)=P\{X_1\le x_1,\dots,X_n\le x_n\}$
+- 边缘分布：降维求分布
+- 独立性：$F(x_1,\dots,x_n)=\prod_{i=1}^nF_{X_i}(x_i)$
+
+# 第四章 随机变量的数字特征
+## 一、数学期望
+### 1. 概念
+- 离散型：$E(X)=\sum_{k=1}^{\infty}x_k p_k$（级数绝对收敛）
+- 连续型：$E(X)=\int_{-\infty}^{+\infty}x f(x)dx$（积分绝对收敛）
+- 本质：概率加权平均值，常数非随机
+- 注：并非所有随机变量都有期望（如柯西分布）
+
+### 2. 随机变量函数的期望
+- 一维离散：$E[g(X)]=\sum_{k=1}^{\infty}g(x_k)p_k$
+- 一维连续：$E[g(X)]=\int_{-\infty}^{+\infty}g(x)f(x)dx$
+- 二维离散：$E[g(X,Y)]=\sum_{j}\sum_{i}g(x_i,y_j)p_{ij}$
+- 二维连续：$E[g(X,Y)]=\iint_{-\infty}^{+\infty}g(x,y)f(x,y)dxdy$
+
+### 3. 性质
+- $E(C)=C$（$C$为常数）
+- $E(CX)=CE(X)$
+- $E(X+Y)=E(X)+E(Y)$
+- $E(aX+bY+C)=aE(X)+bE(Y)+C$
+- 独立：$E(XY)=E(X)E(Y)$
+- 柯西-施瓦茨：$[E(XY)]^2 \le E(X^2)E(Y^2)$
+
+### 4. 常见分布期望
+- 0-1分布：$p$
+- 二项分布$B(n,p)$：$np$
+- 泊松分布$P(\lambda)$：$\lambda$
+- 几何分布：$1/p$
+- 均匀分布$U(a,b)$：$(a+b)/2$
+- 指数分布$E(\lambda)$：$1/\lambda$
+- 正态分布$N(\mu,\sigma^2)$：$\mu$
+
+## 二、方差
+### 1. 定义与计算
+- 定义：$D(X)=E\{[X-E(X)]^2\}$，标准差$\sigma(X)=\sqrt{D(X)}$
+- 公式：$D(X)=E(X^2)-[E(X)]^2$
+- 离散：$D(X)=\sum_{k}[x_k-E(X)]^2p_k$
+- 连续：$D(X)=\int_{-\infty}^{+\infty}[x-E(X)]^2f(x)dx$
+
+### 2. 性质
+- $D(C)=0$
+- $D(CX)=C^2D(X)$
+- $D(X+C)=D(X)$
+- 独立：$D(X\pm Y)=D(X)+D(Y)$
+- $D(X)=0 \Leftrightarrow P\{X=E(X)\}=1$
+
+### 3. 常见分布方差
+- 0-1分布：$p(1-p)$
+- 二项分布$B(n,p)$：$np(1-p)$
+- 泊松分布$P(\lambda)$：$\lambda$
+- 几何分布：$(1-p)/p^2$
+- 均匀分布$U(a,b)$：$(b-a)^2/12$
+- 指数分布$E(\lambda)$：$1/\lambda^2$
+- 正态分布$N(\mu,\sigma^2)$：$\sigma^2$
+
+### 4. 标准化
+- $X^*=\frac{X-E(X)}{\sqrt{D(X)}}$，满足$E(X^*)=0$，$D(X^*)=1$
+
+## 三、协方差与相关系数
+### 1. 协方差
+- 定义：$Cov(X,Y)=E\{[X-E(X)][Y-E(Y)]\}=E(XY)-E(X)E(Y)$
+- 性质
+  - $Cov(X,Y)=Cov(Y,X)$
+  - $Cov(aX,bY)=abCov(X,Y)$
+  - $Cov(X+Y,Z)=Cov(X,Z)+Cov(Y,Z)$
+  - $D(X\pm Y)=D(X)+D(Y)\pm2Cov(X,Y)$
+
+### 2. 相关系数
+- 定义：$\rho_{XY}=\frac{Cov(X,Y)}{\sqrt{D(X)}\sqrt{D(Y)}}$（$D(X),D(Y)>0$）
+- 性质
+  - $|\rho_{XY}|\le1$
+  - 独立$\Rightarrow\rho_{XY}=0$（不相关）
+  - $|\rho_{XY}|=1 \Leftrightarrow P\{Y=a+bX\}=1$（线性相关）
+- 不相关等价：$\rho_{XY}=0 \Leftrightarrow Cov(X,Y)=0 \Leftrightarrow E(XY)=E(X)E(Y) \Leftrightarrow D(X+Y)=D(X)+D(Y)$
+- 注：不相关≠独立；二维正态中，不相关$\Leftrightarrow$独立
+
+## 四、矩
+### 1. 原点矩与中心矩
+- $k$阶原点矩：$E(X^k)$
+- $k$阶中心矩：$E\{[X-E(X)]^k\}$
+- 混合原点矩：$E(X^kY^l)$
+- 混合中心矩：$E\{[X-E(X)]^k[Y-E(Y)]^l\}$
+- 注：期望=1阶原点矩；方差=2阶中心矩；协方差=1+1阶混合中心矩
+
+### 2. 协方差矩阵
+- 二维：$C=\begin{pmatrix}D(X)&Cov(X,Y)\\Cov(X,Y)&D(Y)\end{pmatrix}$
+- $n$维：$C=(c_{ij})_{n\times n}$，$c_{ij}=Cov(X_i,X_j)$
+
+### 3. n维正态分布
+- 密度：$f(x)=\frac{1}{(2\pi)^{n/2}|C|^{1/2}}e^{-\frac{1}{2}(X-\mu)^TC^{-1}(X-\mu)}$
+- 性质
+  - 任意线性组合服从一维正态
+  - 线性变换后仍为n维正态
+  - 独立$\Leftrightarrow$两两不相关
+
