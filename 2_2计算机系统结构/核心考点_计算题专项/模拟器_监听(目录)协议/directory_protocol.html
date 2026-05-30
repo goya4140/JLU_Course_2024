@@ -1,0 +1,658 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>目录协议三节点可视化模拟器</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #0b1020;
+      --panel: #121a2b;
+      --panel-2: #18233a;
+      --panel-3: #0e1526;
+      --line: #2b3957;
+      --text: #edf2ff;
+      --muted: #9aa9c7;
+      --blue: #48c7ff;
+      --green: #67e8a5;
+      --yellow: #ffd166;
+      --red: #ff7a90;
+      --violet: #b9a7ff;
+      --orange: #ffb86b;
+      --shadow: 0 18px 45px rgba(0, 0, 0, .28);
+    }
+
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background: var(--bg);
+      color: var(--text);
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    button, select {
+      border: 1px solid var(--line);
+      background: var(--panel-2);
+      color: var(--text);
+      border-radius: 6px;
+      padding: 8px 12px;
+      font: inherit;
+    }
+
+    button { cursor: pointer; }
+    button:hover:not(:disabled) { border-color: var(--blue); }
+    button:disabled { color: #6e7d9c; cursor: not-allowed; background: #101827; }
+
+    table { width: 100%; border-collapse: collapse; }
+    th, td {
+      border-bottom: 1px solid rgba(43, 57, 87, .72);
+      padding: 8px 9px;
+      text-align: left;
+      white-space: nowrap;
+      font-size: 13px;
+    }
+    th { color: var(--muted); font-size: 12px; }
+
+    .app {
+      width: min(1480px, 100%);
+      margin: 0 auto;
+      padding: 24px;
+    }
+
+    .topbar {
+      display: grid;
+      grid-template-columns: minmax(280px, 1fr) auto;
+      gap: 18px;
+      align-items: end;
+      margin-bottom: 18px;
+    }
+
+    .title {
+      margin: 0;
+      font-size: clamp(24px, 3vw, 38px);
+      line-height: 1.1;
+    }
+
+    .subtitle {
+      margin: 8px 0 0;
+      color: var(--muted);
+      line-height: 1.55;
+      max-width: 880px;
+    }
+
+    .toolbar { display: flex; gap: 8px; justify-content: flex-end; flex-wrap: wrap; }
+    .primary { background: var(--blue); border-color: var(--blue); color: #06111c; font-weight: 750; }
+
+    .layout {
+      display: grid;
+      grid-template-columns: minmax(300px, 390px) minmax(0, 1fr);
+      gap: 16px;
+      align-items: start;
+    }
+
+    .stack { display: grid; gap: 16px; }
+
+    .panel {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      box-shadow: var(--shadow);
+      min-width: 0;
+    }
+
+    .panel-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 14px 16px;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .panel-title {
+      margin: 0;
+      color: var(--blue);
+      font-size: 15px;
+      font-weight: 780;
+    }
+
+    .panel-body { padding: 14px 16px 16px; }
+
+    .chip {
+      display: inline-flex;
+      align-items: center;
+      min-height: 22px;
+      border-radius: 999px;
+      padding: 2px 8px;
+      font-size: 12px;
+      color: var(--muted);
+      background: #202c47;
+      border: 1px solid rgba(43, 57, 87, .9);
+    }
+
+    .chip.u { color: var(--muted); border-color: rgba(154,169,199,.35); background: rgba(154,169,199,.08); }
+    .chip.s { color: var(--blue); border-color: rgba(72,199,255,.35); background: rgba(72,199,255,.08); }
+    .chip.e, .chip.m { color: var(--orange); border-color: rgba(255,184,107,.42); background: rgba(255,184,107,.1); }
+    .chip.i { color: var(--muted); border-color: rgba(154,169,199,.35); background: rgba(154,169,199,.08); }
+    .chip.msg { color: var(--violet); border-color: rgba(185,167,255,.36); background: rgba(185,167,255,.08); }
+    .chip.bad { color: var(--red); border-color: rgba(255,122,144,.35); background: rgba(255,122,144,.08); }
+    .chip.ok { color: var(--green); border-color: rgba(103,232,165,.34); background: rgba(103,232,165,.08); }
+
+    .mono { font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace; }
+    .muted { color: var(--muted); }
+
+    .config-row, .request-row {
+      display: grid;
+      gap: 10px;
+      align-items: center;
+      border-bottom: 1px solid rgba(43, 57, 87, .5);
+      padding: 8px 0;
+    }
+
+    .config-row { grid-template-columns: 88px 1fr; }
+    .config-row:last-child { border-bottom: none; }
+
+    .request-row {
+      grid-template-columns: 28px 1fr auto;
+      border: 1px solid transparent;
+      border-radius: 6px;
+      padding: 8px;
+    }
+    .request-row.active { border-color: rgba(72,199,255,.55); background: rgba(72,199,255,.07); }
+    .request-row.done { color: #6e7d9c; background: rgba(103,232,165,.05); }
+
+    .metrics {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 10px;
+    }
+    .metric {
+      min-width: 0;
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 12px;
+    }
+    .metric small { display: block; color: var(--muted); margin-bottom: 5px; font-size: 12px; }
+    .metric strong { display: block; color: var(--yellow); font-size: 20px; line-height: 1.15; overflow: hidden; text-overflow: ellipsis; }
+
+    .diagram {
+      border: 1px solid rgba(72,199,255,.22);
+      border-radius: 8px;
+      background: #edf8e7;
+      overflow: hidden;
+    }
+    .diagram svg { display: block; width: 100%; height: auto; }
+    .diagram-note {
+      display: grid;
+      gap: 6px;
+      padding: 10px 12px;
+      border-top: 1px solid rgba(43,57,87,.35);
+      background: rgba(14,21,38,.96);
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.45;
+    }
+    .diagram-note strong { color: var(--text); }
+
+    .grid-3 {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 10px;
+    }
+
+    .node-card, .mini-card {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--panel-3);
+      overflow: hidden;
+    }
+    .node-card.active { border-color: var(--blue); box-shadow: 0 0 0 3px rgba(72,199,255,.12); }
+    .node-card.remote { border-color: var(--yellow); box-shadow: 0 0 0 3px rgba(255,209,102,.1); }
+    .node-head, .mini-title {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 10px 12px;
+      border-bottom: 1px solid var(--line);
+      color: var(--blue);
+      font-weight: 750;
+    }
+
+    .log { display: grid; gap: 8px; max-height: 420px; overflow: auto; padding-right: 4px; }
+    .log-item {
+      border: 1px solid rgba(43,57,87,.72);
+      background: var(--panel-3);
+      border-radius: 6px;
+      padding: 9px 10px;
+      line-height: 1.45;
+      font-size: 13px;
+    }
+
+    .table-wrap { overflow: auto; border-radius: 6px; }
+
+    @media (max-width: 1180px) {
+      .layout { grid-template-columns: 1fr; }
+      .topbar { grid-template-columns: 1fr; }
+      .toolbar { justify-content: flex-start; }
+      .grid-3, .metrics { grid-template-columns: 1fr; }
+    }
+
+    @media (max-width: 720px) {
+      .app { padding: 14px; }
+      th, td { padding: 7px 8px; }
+    }
+  </style>
+</head>
+<body>
+  <main class="app">
+    <header class="topbar">
+      <div>
+        <h1 class="title">目录协议三节点可视化模拟器</h1>
+        <p class="subtitle">围绕 P1、P2、P3 三个节点观察目录协议中的点对点消息：本地请求先到 Home，Home 查目录后精准通知远程节点。</p>
+      </div>
+      <div class="toolbar">
+        <button id="resetBtn" type="button">重新开始</button>
+        <button id="prevBtn" type="button">上一步</button>
+        <button id="stepBtn" type="button" class="primary">单步</button>
+        <button id="runBtn" type="button">自动运行</button>
+      </div>
+    </header>
+
+    <section class="layout">
+      <aside class="stack">
+        <section class="panel">
+          <div class="panel-head">
+            <h2 class="panel-title">系统配置</h2>
+            <span class="chip msg">Directory</span>
+          </div>
+          <div class="panel-body">
+            <div class="config-row"><span class="muted">节点</span><span>P1、P2、P3</span></div>
+            <div class="config-row"><span class="muted">目标块</span><span>地址 X，数据初值 <span class="mono">X=0</span></span></div>
+            <div class="config-row"><span class="muted">Home</span><span>P3，保存主存块和目录项</span></div>
+            <div class="config-row"><span class="muted">目录状态</span><span><span class="chip u">U</span> <span class="chip s">S</span> <span class="chip e">E</span></span></div>
+            <div class="config-row"><span class="muted">Cache 状态</span><span><span class="chip i">I</span> <span class="chip s">S</span> <span class="chip m">M</span></span></div>
+          </div>
+        </section>
+
+        <section class="panel">
+          <div class="panel-head">
+            <h2 class="panel-title">操作序列</h2>
+            <span class="chip" id="requestProgress">0 / 4</span>
+          </div>
+          <div class="panel-body">
+            <div id="requestList" class="stack"></div>
+          </div>
+        </section>
+
+        <section class="panel">
+          <div class="panel-head">
+            <h2 class="panel-title">消息速查</h2>
+          </div>
+          <div class="panel-body stack">
+            <div><span class="chip msg">RdMiss</span> 本地向 Home 申请读 X</div>
+            <div><span class="chip msg">WtMiss</span> 本地向 Home 申请独占写 X</div>
+            <div><span class="chip bad">Invalidate</span> Home 精准作废共享者</div>
+            <div><span class="chip bad">Fetch&Inv</span> Home 取回脏数据并作废旧 owner</div>
+            <div><span class="chip ok">DReply</span> Home 把数据或写权限交给本地</div>
+          </div>
+        </section>
+      </aside>
+
+      <section class="stack">
+        <div class="metrics">
+          <div class="metric"><small>当前操作</small><strong id="metricRequest">初始</strong></div>
+          <div class="metric"><small>当前微步骤</small><strong id="metricStage">准备</strong></div>
+          <div class="metric"><small>目录状态</small><strong id="metricDir">U {}</strong></div>
+          <div class="metric"><small>正在传递</small><strong id="metricMsg">无</strong></div>
+        </div>
+
+        <section class="panel">
+          <div class="panel-head">
+            <h2 class="panel-title">三节点点对点通信示意</h2>
+            <div><span class="chip u">U</span> <span class="chip s">S</span> <span class="chip e">E</span></div>
+          </div>
+          <div class="panel-body">
+            <div id="diagram" class="diagram"></div>
+          </div>
+        </section>
+
+        <section class="grid-3" id="nodeCards"></section>
+
+        <section class="panel">
+          <div class="panel-head">
+            <h2 class="panel-title">推演说明</h2>
+          </div>
+          <div class="panel-body">
+            <div id="eventLog" class="log"></div>
+          </div>
+        </section>
+      </section>
+    </section>
+  </main>
+
+  <script>
+    const nodes = ["P1", "P2", "P3"];
+    const home = "P3";
+    const maxProgress = 16;
+    const dirName = { U: "Uncached", S: "Shared", E: "Exclusive" };
+    const cacheName = { I: "Invalid", S: "Shared", M: "Modified" };
+    const requests = [
+      { node: "P1", op: "读", address: "X" },
+      { node: "P2", op: "读", address: "X" },
+      { node: "P1", op: "写", address: "X", writeData: "X=1" },
+      { node: "P2", op: "写", address: "X", writeData: "X=2" }
+    ];
+
+    const messagePlan = [
+      [
+        { from: "P1", to: "P3", msg: "RdMiss(P1,X)", note: "P1 读缺失，所有请求先去 Home P3。" },
+        { from: "P3", to: "P1", msg: "DReply(X=0)", note: "目录 U，Home 直接从主存给 P1 数据。" }
+      ],
+      [
+        { from: "P2", to: "P3", msg: "RdMiss(P2,X)", note: "P2 读缺失，仍先询问 Home。" },
+        { from: "P3", to: "P2", msg: "DReply(X=0)", note: "目录 S，主存数据有效，Home 给 P2 副本。" }
+      ],
+      [
+        { from: "P1", to: "P3", msg: "WtMiss(P1,X)", note: "P1 只有共享副本，写之前必须申请独占。" },
+        { from: "P3", to: "P2", msg: "Invalidate(X)", note: "Home 查共享集，精准作废 P2，不做广播。" },
+        { from: "P3", to: "P1", msg: "DReply(Auth)", note: "P2 作废后，Home 授权 P1 独占写。" }
+      ],
+      [
+        { from: "P2", to: "P3", msg: "WtMiss(P2,X)", note: "P2 要写，但目录 E 显示最新数据在 P1。" },
+        { from: "P3", to: "P1", msg: "Fetch&Inv(X)", note: "Home 命令旧 owner P1 交出脏数据并作废。" },
+        { from: "P1", to: "P3", msg: "WtBack(X=1)", note: "P1 将最新数据写回 Home，自己的 Cache 变 I。" },
+        { from: "P3", to: "P2", msg: "DReply(X=1)", note: "Home 将最新数据和独占权交给 P2。" }
+      ]
+    ];
+
+    const el = (id) => document.getElementById(id);
+    let progress = 0;
+    let timer = null;
+
+    function cloneState(state) {
+      return {
+        dir: { state: state.dir.state, sharers: [...state.dir.sharers], owner: state.dir.owner, memory: state.dir.memory, memoryFresh: state.dir.memoryFresh },
+        caches: Object.fromEntries(Object.entries(state.caches).map(([node, cache]) => [node, { ...cache }]))
+      };
+    }
+
+    function initialState() {
+      return {
+        dir: { state: "U", sharers: [], owner: null, memory: "X=0", memoryFresh: true },
+        caches: {
+          P1: { state: "I", data: "--" },
+          P2: { state: "I", data: "--" },
+          P3: { state: "I", data: "--" }
+        }
+      };
+    }
+
+    function applyOperation(state, index) {
+      const request = requests[index];
+      if (index === 0) {
+        state.caches.P1 = { state: "S", data: state.dir.memory };
+        state.dir.state = "S";
+        state.dir.sharers = ["P1"];
+        state.dir.owner = null;
+      } else if (index === 1) {
+        state.caches.P2 = { state: "S", data: state.dir.memory };
+        state.dir.state = "S";
+        state.dir.sharers = ["P1", "P2"];
+        state.dir.owner = null;
+      } else if (index === 2) {
+        state.caches.P2.state = "I";
+        state.caches.P1 = { state: "M", data: request.writeData };
+        state.dir.state = "E";
+        state.dir.sharers = ["P1"];
+        state.dir.owner = "P1";
+        state.dir.memoryFresh = false;
+      } else if (index === 3) {
+        state.dir.memory = state.caches.P1.data;
+        state.dir.memoryFresh = true;
+        state.caches.P1.state = "I";
+        state.caches.P2 = { state: "M", data: request.writeData };
+        state.dir.state = "E";
+        state.dir.sharers = ["P2"];
+        state.dir.owner = "P2";
+        state.dir.memoryFresh = false;
+      }
+    }
+
+    function buildView() {
+      const state = initialState();
+      const completed = progress === 0 ? 0 : Math.floor((progress - 1) / 4);
+      const micro = progress === 0 ? 0 : ((progress - 1) % 4) + 1;
+      const requestIndex = progress === 0 ? -1 : Math.floor((progress - 1) / 4);
+      for (let i = 0; i < completed; i += 1) applyOperation(state, i);
+      const before = cloneState(state);
+      let current = null;
+      if (requestIndex >= 0 && requestIndex < requests.length) {
+        const plan = messagePlan[requestIndex];
+        const visibleMessage = plan[Math.min(micro, plan.length) - 1] || null;
+        current = { index: requestIndex, request: requests[requestIndex], micro, plan, visibleMessage, before };
+        if (micro >= plan.length || progress > (requestIndex + 1) * 4) applyOperation(state, requestIndex);
+      }
+      return { state, current };
+    }
+
+    function esc(value) {
+      return String(value).replace(/[&<>"']/g, (char) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[char]));
+    }
+
+    function cacheColor(state) {
+      if (state === "S") return "#aef38f";
+      if (state === "M") return "#ff7aa8";
+      return "#d8d8d8";
+    }
+
+    function dirColor(state) {
+      if (state === "S") return "#aef38f";
+      if (state === "E") return "#ffcf88";
+      return "#d8d8d8";
+    }
+
+    function msgColor(msg) {
+      if (!msg) return "#333";
+      if (msg.includes("Invalidate") || msg.includes("Fetch&Inv")) return "#e00022";
+      if (msg.includes("WtBack") || msg.includes("DReply")) return "#128a20";
+      return "#8a00c4";
+    }
+
+    function arrowPath(from, to) {
+      const points = {
+        P1: { x: 168, y: 260 },
+        P2: { x: 782, y: 260 },
+        P3: { x: 475, y: 410 }
+      };
+      const a = points[from];
+      const b = points[to];
+      const dx = b.x - a.x;
+      const dy = b.y - a.y;
+      return `M ${a.x} ${a.y} C ${a.x + dx * .34} ${a.y + dy * .12 - 60}, ${a.x + dx * .66} ${a.y + dy * .88 - 60}, ${b.x} ${b.y}`;
+    }
+
+    function renderDiagram(view) {
+      const { state, current } = view;
+      const positions = {
+        P1: { x: 170, y: 115 },
+        P2: { x: 780, y: 115 },
+        P3: { x: 475, y: 330 }
+      };
+      const active = current ? current.request.node : null;
+      const msg = current ? current.visibleMessage : null;
+      const msgPath = msg ? arrowPath(msg.from, msg.to) : "";
+      const nodeSvgs = nodes.map((node) => {
+        const pos = positions[node];
+        const cache = state.caches[node];
+        const isHome = node === home;
+        const isActive = node === active;
+        const isMsgEndpoint = msg && (msg.from === node || msg.to === node);
+        const stroke = isActive ? "#169bd5" : (isMsgEndpoint ? "#ffb000" : "#222");
+        const role = isHome ? "Home + Directory" : (isActive ? "Local Node" : "Remote Node");
+        return `
+          <g>
+            <text x="${pos.x}" y="${pos.y - 78}" text-anchor="middle" font-size="26" font-weight="900" fill="#111">${node}</text>
+            <circle cx="${pos.x}" cy="${pos.y - 35}" r="33" fill="#dddddd" stroke="${stroke}" stroke-width="${isActive || isMsgEndpoint ? 4 : 2}"></circle>
+            <text x="${pos.x}" y="${pos.y - 28}" text-anchor="middle" font-size="18" font-weight="800" fill="#111">CPU</text>
+            <text x="${pos.x}" y="${pos.y + 12}" text-anchor="middle" font-size="14" font-weight="800" fill="#334">${role}</text>
+            <line x1="${pos.x}" y1="${pos.y - 2}" x2="${pos.x}" y2="${pos.y + 36}" stroke="#333" stroke-width="2"></line>
+            <rect x="${pos.x - 78}" y="${pos.y + 36}" width="156" height="78" rx="4" fill="#ffe4a8" stroke="${stroke}" stroke-width="${isActive || isMsgEndpoint ? 4 : 2}"></rect>
+            <text x="${pos.x}" y="${pos.y + 60}" text-anchor="middle" font-size="15" font-family="monospace" fill="#111">Cache X: ${esc(cache.data)}</text>
+            <rect x="${pos.x - 78}" y="${pos.y + 76}" width="156" height="38" fill="${cacheColor(cache.state)}" stroke="#333" stroke-width="1"></rect>
+            <text x="${pos.x}" y="${pos.y + 101}" text-anchor="middle" font-size="18" font-weight="900" fill="#111">${cache.state} / ${cacheName[cache.state]}</text>
+          </g>
+        `;
+      }).join("");
+
+      const sharers = state.dir.sharers.length ? `{${state.dir.sharers.join(", ")}}` : "{}";
+      const owner = state.dir.owner || "--";
+      const dirText = state.dir.state === "E" ? `Owner=${owner}` : `Sharers=${sharers}`;
+      const memoryText = `${state.dir.memory}${state.dir.memoryFresh ? " fresh" : " stale"}`;
+      const note = current
+        ? (msg ? msg.note : "本微步骤结算目录项与各 Cache 状态。")
+        : "初始时目录为 U，三个 Cache 均为 I。点击单步开始。";
+
+      el("diagram").innerHTML = `
+        <svg viewBox="0 0 960 560" role="img" aria-label="目录协议三节点消息传递图">
+          <defs>
+            <marker id="arrowHead" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+              <path d="M 0 0 L 10 5 L 0 10 z" fill="context-stroke"></path>
+            </marker>
+          </defs>
+          <rect x="0" y="0" width="960" height="560" fill="#edf8e7"></rect>
+          ${nodeSvgs}
+          <rect x="354" y="37" width="242" height="134" rx="8" fill="#fff6d4" stroke="#333" stroke-width="2"></rect>
+          <text x="475" y="66" text-anchor="middle" font-size="23" font-weight="900" fill="#111">Directory Entry for X</text>
+          <rect x="376" y="82" width="198" height="35" rx="4" fill="${dirColor(state.dir.state)}" stroke="#333" stroke-width="1.4"></rect>
+          <text x="475" y="106" text-anchor="middle" font-size="19" font-weight="900" fill="#111">${state.dir.state} / ${dirName[state.dir.state]}</text>
+          <text x="475" y="139" text-anchor="middle" font-size="16" font-weight="800" fill="#111">${esc(dirText)}</text>
+          <text x="475" y="162" text-anchor="middle" font-size="14" fill="${state.dir.memoryFresh ? "#167a3a" : "#c8002f"}">Memory: ${esc(memoryText)}</text>
+          ${msg ? `
+            <path d="${msgPath}" fill="none" stroke="${msgColor(msg.msg)}" stroke-width="5" marker-end="url(#arrowHead)"></path>
+            <text x="480" y="270" text-anchor="middle" font-size="28" font-weight="900" fill="${msgColor(msg.msg)}">${esc(msg.msg)}</text>
+          ` : ""}
+          <text x="480" y="525" text-anchor="middle" font-size="17" font-weight="900" fill="#111">${current ? esc(`${current.request.node} ${current.request.op} ${current.request.address}`) : "Ready"}</text>
+        </svg>
+        <div class="diagram-note">
+          <strong>${esc(note)}</strong>
+          <span>目录协议没有全局广播：Local 只向 Home 发送请求，Home 根据目录项向具体 Remote 节点发送 Fetch、Fetch&Inv 或 Invalidate。</span>
+        </div>
+      `;
+    }
+
+    function renderRequests(view) {
+      el("requestProgress").textContent = `${Math.min(Math.ceil(progress / 4), 4)} / 4`;
+      el("requestList").innerHTML = requests.map((request, index) => {
+        const active = view.current && view.current.index === index;
+        const done = progress > (index + 1) * 4;
+        return `<div class="request-row ${active ? "active" : ""} ${done ? "done" : ""}">
+          <span class="chip">${index + 1}</span>
+          <span><strong>${request.node}</strong> ${request.op} <span class="mono">${request.address}</span></span>
+          <span class="chip mono">${request.writeData || "read"}</span>
+        </div>`;
+      }).join("");
+    }
+
+    function renderCards(view) {
+      const { state, current } = view;
+      const active = current ? current.request.node : null;
+      const msg = current ? current.visibleMessage : null;
+      el("nodeCards").innerHTML = nodes.map((node) => {
+        const cache = state.caches[node];
+        const cls = node === active ? "active" : (msg && (msg.from === node || msg.to === node) ? "remote" : "");
+        return `<section class="node-card ${cls}">
+          <div class="node-head"><span>${node}</span><span class="chip ${node === home ? "msg" : ""}">${node === home ? "Home" : "Processor"}</span></div>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>块</th><th>Data</th><th>Cache 状态</th></tr></thead>
+              <tbody><tr><td>X</td><td class="mono">${cache.data}</td><td><span class="chip ${cache.state.toLowerCase()}">${cache.state}</span></td></tr></tbody>
+            </table>
+          </div>
+        </section>`;
+      }).join("");
+    }
+
+    function renderMetrics(view) {
+      const { state, current } = view;
+      const sharers = state.dir.sharers.length ? `{${state.dir.sharers.join(",")}}` : "{}";
+      el("metricRequest").textContent = current ? `${current.index + 1} / 4` : "初始";
+      el("metricStage").textContent = current ? (current.visibleMessage ? `消息 ${Math.min(current.micro, current.plan.length)} / ${current.plan.length}` : "状态更新") : "准备";
+      el("metricDir").textContent = state.dir.state === "E" ? `E owner=${state.dir.owner}` : `${state.dir.state} ${sharers}`;
+      el("metricMsg").textContent = current && current.visibleMessage ? current.visibleMessage.msg : "无";
+      el("prevBtn").disabled = progress <= 0;
+      el("stepBtn").disabled = progress >= maxProgress;
+      el("runBtn").textContent = timer ? "暂停" : "自动运行";
+    }
+
+    function renderLog(view) {
+      const { state, current } = view;
+      const lines = [];
+      if (!current) {
+        lines.push("初始状态：目录项 X 为 U，Sharers={}，P1/P2/P3 的 Cache 均为 I。");
+      } else {
+        lines.push(`操作 ${current.index + 1}：${current.request.node} ${current.request.op} ${current.request.address}`);
+        current.plan.slice(0, Math.min(current.micro, current.plan.length)).forEach((message, index) => {
+          lines.push(`${index + 1}. ${message.from} -> ${message.to}: ${message.msg}。${message.note}`);
+        });
+        if (!current.visibleMessage) lines.push("本操作的消息传递结束，更新目录项和 Cache 状态。");
+      }
+      const sharers = state.dir.sharers.length ? `{${state.dir.sharers.join(", ")}}` : "{}";
+      lines.push(`当前目录：${state.dir.state}，${state.dir.state === "E" ? `Owner=${state.dir.owner}` : `Sharers=${sharers}`}，Memory=${state.dir.memory}${state.dir.memoryFresh ? "（最新）" : "（过期）"}。`);
+      el("eventLog").innerHTML = lines.map((line) => `<div class="log-item">${line}</div>`).join("");
+    }
+
+    function render() {
+      const view = buildView();
+      renderRequests(view);
+      renderDiagram(view);
+      renderCards(view);
+      renderMetrics(view);
+      renderLog(view);
+    }
+
+    function stopRun() {
+      if (timer) {
+        window.clearInterval(timer);
+        timer = null;
+      }
+    }
+
+    function step() {
+      if (progress < maxProgress) progress += 1;
+      if (progress >= maxProgress) stopRun();
+      render();
+    }
+
+    function reset() {
+      stopRun();
+      progress = 0;
+      render();
+    }
+
+    el("resetBtn").addEventListener("click", reset);
+    el("prevBtn").addEventListener("click", () => {
+      stopRun();
+      if (progress > 0) progress -= 1;
+      render();
+    });
+    el("stepBtn").addEventListener("click", () => {
+      stopRun();
+      step();
+    });
+    el("runBtn").addEventListener("click", () => {
+      if (timer) {
+        stopRun();
+        render();
+        return;
+      }
+      timer = window.setInterval(step, 1000);
+      render();
+    });
+
+    render();
+  </script>
+</body>
+</html>
