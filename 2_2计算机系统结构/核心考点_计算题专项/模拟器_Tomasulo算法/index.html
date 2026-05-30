@@ -1,0 +1,1012 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Tomasulo 算法可视化模拟器</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #0b1020;
+      --panel: #121a2b;
+      --panel-2: #18233a;
+      --line: #2b3957;
+      --text: #edf2ff;
+      --muted: #9aa9c7;
+      --soft: #6e7d9c;
+      --blue: #48c7ff;
+      --green: #67e8a5;
+      --yellow: #ffd166;
+      --red: #ff7a90;
+      --violet: #b9a7ff;
+      --orange: #ffb86b;
+      --chip: #202c47;
+      --shadow: 0 18px 45px rgba(0, 0, 0, .28);
+    }
+
+    * { box-sizing: border-box; }
+    html { min-width: 320px; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background: var(--bg);
+      color: var(--text);
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      letter-spacing: 0;
+    }
+
+    button, input, textarea, select {
+      font: inherit;
+    }
+
+    button {
+      border: 1px solid var(--line);
+      background: var(--panel-2);
+      color: var(--text);
+      border-radius: 6px;
+      padding: 8px 12px;
+      cursor: pointer;
+    }
+
+    button:hover:not(:disabled) { border-color: var(--blue); }
+    button:disabled {
+      cursor: not-allowed;
+      color: var(--soft);
+      background: #101827;
+    }
+
+    textarea, input {
+      width: 100%;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      background: #0e1526;
+      color: var(--text);
+      padding: 9px 10px;
+      outline: none;
+    }
+
+    textarea:focus, input:focus {
+      border-color: var(--blue);
+      box-shadow: 0 0 0 3px rgba(72, 199, 255, .12);
+    }
+
+    textarea {
+      min-height: 190px;
+      resize: vertical;
+      line-height: 1.45;
+      font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+      font-size: 13px;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    th, td {
+      border-bottom: 1px solid rgba(43, 57, 87, .72);
+      padding: 8px 9px;
+      text-align: left;
+      vertical-align: middle;
+      white-space: nowrap;
+    }
+
+    th {
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 650;
+    }
+
+    td {
+      font-size: 13px;
+      color: var(--text);
+    }
+
+    .app {
+      width: min(1440px, 100%);
+      margin: 0 auto;
+      padding: 24px;
+    }
+
+    .topbar {
+      display: grid;
+      grid-template-columns: minmax(280px, 1fr) auto;
+      align-items: end;
+      gap: 18px;
+      margin-bottom: 18px;
+    }
+
+    .title {
+      margin: 0;
+      font-size: clamp(24px, 3vw, 38px);
+      line-height: 1.1;
+      color: var(--text);
+    }
+
+    .subtitle {
+      margin: 8px 0 0;
+      color: var(--muted);
+      max-width: 760px;
+      line-height: 1.55;
+    }
+
+    .toolbar {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      justify-content: flex-end;
+      flex-wrap: wrap;
+    }
+
+    .primary {
+      background: var(--blue);
+      border-color: var(--blue);
+      color: #06111c;
+      font-weight: 750;
+    }
+
+    .danger { color: var(--red); }
+
+    .layout {
+      display: grid;
+      grid-template-columns: minmax(340px, 430px) minmax(0, 1fr);
+      gap: 16px;
+      align-items: start;
+    }
+
+    .panel {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      box-shadow: var(--shadow);
+    }
+
+    .panel-head {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      align-items: center;
+      padding: 14px 16px;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .panel-title {
+      margin: 0;
+      font-size: 15px;
+      font-weight: 780;
+      color: var(--blue);
+    }
+
+    .panel-body { padding: 14px 16px 16px; }
+
+    .grid-2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+
+    .grid-3 {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 10px;
+    }
+
+    .field {
+      display: grid;
+      gap: 6px;
+      min-width: 0;
+    }
+
+    .field span {
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .stack {
+      display: grid;
+      gap: 16px;
+    }
+
+    .metrics {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 10px;
+      margin-bottom: 16px;
+    }
+
+    .metric {
+      min-width: 0;
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 12px;
+    }
+
+    .metric small {
+      display: block;
+      color: var(--muted);
+      margin-bottom: 5px;
+      font-size: 12px;
+    }
+
+    .metric strong {
+      display: block;
+      font-size: 22px;
+      line-height: 1.1;
+      color: var(--yellow);
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .work-grid {
+      display: grid;
+      grid-template-columns: 1.35fr .9fr;
+      gap: 16px;
+    }
+
+    .core-grid {
+      display: grid;
+      grid-template-columns: minmax(0, 1.25fr) minmax(300px, .75fr);
+      gap: 16px;
+      align-items: start;
+    }
+
+    .wide-panel {
+      grid-column: 1 / -1;
+    }
+
+    .status-legend {
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .table-wrap {
+      overflow: auto;
+      border-radius: 6px;
+    }
+
+    .mono {
+      font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+    }
+
+    .chip {
+      display: inline-flex;
+      align-items: center;
+      min-height: 22px;
+      border-radius: 999px;
+      padding: 2px 8px;
+      font-size: 12px;
+      color: var(--muted);
+      background: var(--chip);
+      border: 1px solid rgba(43, 57, 87, .9);
+    }
+
+    .chip.ready {
+      color: var(--green);
+      border-color: rgba(103, 232, 165, .34);
+      background: rgba(103, 232, 165, .08);
+    }
+
+    .chip.waiting {
+      color: var(--red);
+      border-color: rgba(255, 122, 144, .34);
+      background: rgba(255, 122, 144, .08);
+    }
+
+    .chip.running {
+      color: var(--yellow);
+      border-color: rgba(255, 209, 102, .34);
+      background: rgba(255, 209, 102, .08);
+    }
+
+    .chip.done {
+      color: var(--violet);
+      border-color: rgba(185, 167, 255, .34);
+      background: rgba(185, 167, 255, .08);
+    }
+
+    .ok { color: var(--green); }
+    .warn { color: var(--yellow); }
+    .wait { color: var(--red); }
+    .info { color: var(--blue); }
+    .violet { color: var(--violet); }
+    .muted { color: var(--muted); }
+
+    .log {
+      display: grid;
+      gap: 8px;
+      max-height: 360px;
+      overflow: auto;
+      padding-right: 4px;
+    }
+
+    .log-item {
+      border: 1px solid rgba(43, 57, 87, .72);
+      background: #0e1526;
+      border-radius: 6px;
+      padding: 9px 10px;
+      color: var(--text);
+      line-height: 1.45;
+      font-size: 13px;
+    }
+
+    .hint {
+      color: var(--muted);
+      line-height: 1.55;
+      font-size: 13px;
+      margin: 0;
+    }
+
+    .error {
+      display: none;
+      margin-top: 10px;
+      padding: 10px 12px;
+      border: 1px solid rgba(255, 122, 144, .45);
+      border-radius: 6px;
+      color: #ffd4dc;
+      background: rgba(255, 122, 144, .08);
+      line-height: 1.5;
+    }
+
+    .error.visible { display: block; }
+
+    .rs-busy { background: rgba(72, 199, 255, .07); }
+    .rs-exec { background: rgba(103, 232, 165, .08); }
+    .rs-ready { background: rgba(255, 209, 102, .08); }
+    .inst-issued { background: rgba(72, 199, 255, .06); }
+    .inst-running { background: rgba(255, 209, 102, .09); }
+    .inst-waiting { background: rgba(255, 122, 144, .07); }
+    .done-row td { color: var(--soft); }
+
+    @media (max-width: 1120px) {
+      .layout, .work-grid, .core-grid { grid-template-columns: 1fr; }
+      .topbar { grid-template-columns: 1fr; }
+      .toolbar { justify-content: flex-start; }
+    }
+
+    @media (max-width: 720px) {
+      .app { padding: 14px; }
+      .grid-2, .grid-3, .metrics { grid-template-columns: 1fr; }
+      th, td { padding: 7px 8px; }
+    }
+  </style>
+</head>
+<body>
+  <main class="app">
+    <header class="topbar">
+      <div>
+        <h1 class="title">Tomasulo 算法可视化模拟器</h1>
+        <p class="subtitle">编辑指令、寄存器、内存、保留站数量和执行周期，然后逐周期观察流出、执行、写回、Qi 重命名和保留站等待关系。</p>
+      </div>
+      <div class="toolbar" aria-label="模拟控制">
+        <button id="sampleBtn" type="button">载入课本例题</button>
+        <button id="resetBtn" type="button">重新开始</button>
+        <button id="stepBtn" type="button" class="primary">单步</button>
+        <button id="runBtn" type="button">自动运行</button>
+      </div>
+    </header>
+
+    <section class="layout">
+      <aside class="stack">
+        <section class="panel">
+          <div class="panel-head">
+            <h2 class="panel-title">程序</h2>
+            <span class="chip mono">LD / SD / ADD / SUB / MUL / DIV</span>
+          </div>
+          <div class="panel-body">
+            <label class="field">
+              <span>每行一条指令</span>
+              <textarea id="programInput" spellcheck="false"></textarea>
+            </label>
+            <p class="hint" style="margin-top: 10px;">格式示例：<span class="mono">LD.D F2, 0(R1)</span>、<span class="mono">ADD.D F0, F4, F2</span>、<span class="mono">SD.D F4, 5(R1)</span>。数字支持十进制和 <span class="mono">0x</span> 十六进制。</p>
+            <div id="errorBox" class="error" role="alert"></div>
+          </div>
+        </section>
+
+        <section class="panel">
+          <div class="panel-head">
+            <h2 class="panel-title">机器配置</h2>
+          </div>
+          <div class="panel-body stack">
+            <div class="grid-3">
+              <label class="field"><span>Load/Store 保留站</span><input id="loadRsInput" type="number" min="1" max="8" value="2"></label>
+              <label class="field"><span>Add/Sub 保留站</span><input id="addRsInput" type="number" min="1" max="8" value="2"></label>
+              <label class="field"><span>Mul/Div 保留站</span><input id="mulRsInput" type="number" min="1" max="8" value="2"></label>
+            </div>
+            <div class="grid-3">
+              <label class="field"><span>Load/Store 功能部件</span><input id="loadFuInput" type="number" min="1" max="4" value="1"></label>
+              <label class="field"><span>Add/Sub 功能部件</span><input id="addFuInput" type="number" min="1" max="4" value="1"></label>
+              <label class="field"><span>Mul/Div 功能部件</span><input id="mulFuInput" type="number" min="1" max="4" value="1"></label>
+            </div>
+            <div class="grid-3">
+              <label class="field"><span>LD 周期</span><input id="latLdInput" type="number" min="1" max="50" value="2"></label>
+              <label class="field"><span>SD 周期</span><input id="latSdInput" type="number" min="1" max="50" value="2"></label>
+              <label class="field"><span>ADD/SUB 周期</span><input id="latAddInput" type="number" min="1" max="50" value="4"></label>
+              <label class="field"><span>MUL 周期</span><input id="latMulInput" type="number" min="1" max="80" value="10"></label>
+              <label class="field"><span>DIV 周期</span><input id="latDivInput" type="number" min="1" max="120" value="20"></label>
+              <label class="field"><span>流出宽度</span><input id="issueWidthInput" type="number" min="1" max="4" value="1"></label>
+            </div>
+          </div>
+        </section>
+
+        <section class="panel">
+          <div class="panel-head">
+            <h2 class="panel-title">初始数据</h2>
+          </div>
+          <div class="panel-body stack">
+            <label class="field">
+              <span>寄存器 JSON</span>
+              <textarea id="registerInput" spellcheck="false" style="min-height: 120px;"></textarea>
+            </label>
+            <label class="field">
+              <span>内存 JSON</span>
+              <textarea id="memoryInput" spellcheck="false" style="min-height: 95px;"></textarea>
+            </label>
+          </div>
+        </section>
+      </aside>
+
+      <section class="stack">
+        <div class="metrics">
+          <div class="metric"><small>当前周期</small><strong id="cycleMetric">0</strong></div>
+          <div class="metric"><small>下一条流出</small><strong id="pcMetric">1</strong></div>
+          <div class="metric"><small>已完成</small><strong id="doneMetric">0/0</strong></div>
+          <div class="metric"><small>运行状态</small><strong id="stateMetric">待开始</strong></div>
+        </div>
+
+        <div class="core-grid">
+          <section class="panel wide-panel">
+            <div class="panel-head">
+              <h2 class="panel-title">指令执行状态表</h2>
+              <div class="status-legend" aria-label="指令状态图例">
+                <span class="chip">未流出</span>
+                <span class="chip waiting">等待</span>
+                <span class="chip running">执行中</span>
+                <span class="chip done">完成</span>
+              </div>
+            </div>
+            <div class="panel-body">
+              <div class="table-wrap">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>#</th>
+                      <th>指令</th>
+                      <th>流出</th>
+                      <th>执行开始</th>
+                      <th>执行结束</th>
+                      <th>写回/存储</th>
+                    </tr>
+                  </thead>
+                  <tbody id="instTable"></tbody>
+                </table>
+              </div>
+            </div>
+          </section>
+
+          <section class="panel">
+            <div class="panel-head">
+              <h2 class="panel-title">保留站/缓冲器状态</h2>
+              <div class="status-legend" aria-label="保留站状态图例">
+                <span class="chip ready">就绪</span>
+                <span class="chip waiting">等待</span>
+                <span class="chip running">执行中</span>
+              </div>
+            </div>
+            <div class="panel-body">
+              <div class="table-wrap">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>保留站</th>
+                      <th>Busy</th>
+                      <th>Op</th>
+                      <th>Vj / Qj</th>
+                      <th>Vk / Qk</th>
+                      <th>A</th>
+                      <th>剩余</th>
+                    </tr>
+                  </thead>
+                  <tbody id="rsTable"></tbody>
+                </table>
+              </div>
+            </div>
+          </section>
+
+          <section class="panel">
+            <div class="panel-head">
+              <h2 class="panel-title">寄存器状态表</h2>
+              <div class="status-legend" aria-label="寄存器状态图例">
+                <span class="chip ready">就绪</span>
+                <span class="chip waiting">等待</span>
+              </div>
+            </div>
+            <div class="panel-body stack">
+              <section>
+                <h3 class="panel-title" style="margin: 0 0 10px;">Qi</h3>
+                <div class="table-wrap">
+                  <table>
+                    <tbody id="qiTable"></tbody>
+                  </table>
+                </div>
+              </section>
+              <section>
+                <h3 class="panel-title" style="margin: 0 0 10px;">寄存器值</h3>
+                <div class="table-wrap">
+                  <table>
+                    <tbody id="regTable"></tbody>
+                  </table>
+                </div>
+              </section>
+            </div>
+          </section>
+        </div>
+
+        <section class="panel">
+          <div class="panel-head">
+            <h2 class="panel-title">本轮事件</h2>
+            <span class="chip">红色 Q 表示等待生产者</span>
+          </div>
+          <div class="panel-body">
+            <div id="eventLog" class="log"></div>
+          </div>
+        </section>
+      </section>
+    </section>
+  </main>
+
+  <script>
+    const sample = {
+      program: `LD.D F2, 0(R1)
+ADD.D F0, F4, F2
+LD.D F4, 3(R1)
+MUL.D F6, F4, F0
+SUB.D F0, F4, F2
+DIV.D F8, F2, F0
+ADD.D F10, F4, F0
+SUB.D F4, F10, F6
+SD.D F4, 5(R1)`,
+      registers: {
+        R1: "0xC0",
+        F0: 5,
+        F2: 11,
+        F4: 1,
+        F6: 0,
+        F8: 0,
+        F10: 0
+      },
+      memory: {
+        "0xC0": 4,
+        "0xC3": 6,
+        "0xC5": 20
+      }
+    };
+
+    const el = (id) => document.getElementById(id);
+    let sim = null;
+    let timer = null;
+    function numeric(value) {
+      if (typeof value === "number") return value;
+      if (typeof value !== "string") return Number(value) || 0;
+      const trimmed = value.trim();
+      if (/^[-+]?0x[0-9a-f]+$/i.test(trimmed)) return Number.parseInt(trimmed, 16);
+      return Number(trimmed);
+    }
+
+    function fmt(value) {
+      if (value === null || value === undefined || Number.isNaN(value)) return "—";
+      if (typeof value === "number") return Number.isInteger(value) ? String(value) : value.toFixed(3);
+      return String(value);
+    }
+
+    function parseInstruction(line, index) {
+      const clean = line.replace(/#.*/, "").trim();
+      if (!clean) return null;
+      const loadStore = clean.match(/^(LD\.D|SD\.D)\s+([FR]\d+)\s*,\s*([-+]?0x[0-9a-f]+|[-+]?\d+)\s*\(\s*([FR]\d+)\s*\)$/i);
+      if (loadStore) {
+        return {
+          id: index,
+          raw: clean,
+          op: loadStore[1].toUpperCase(),
+          dest: loadStore[1].toUpperCase() === "LD.D" ? loadStore[2].toUpperCase() : null,
+          src1: loadStore[4].toUpperCase(),
+          src2: loadStore[1].toUpperCase() === "SD.D" ? loadStore[2].toUpperCase() : null,
+          offset: numeric(loadStore[3]),
+          issue: null,
+          execStart: null,
+          execEnd: null,
+          write: null,
+          rs: null
+        };
+      }
+      const alu = clean.match(/^(ADD\.D|SUB\.D|MUL\.D|DIV\.D)\s+([FR]\d+)\s*,\s*([FR]\d+)\s*,\s*([FR]\d+)$/i);
+      if (alu) {
+        return {
+          id: index,
+          raw: clean,
+          op: alu[1].toUpperCase(),
+          dest: alu[2].toUpperCase(),
+          src1: alu[3].toUpperCase(),
+          src2: alu[4].toUpperCase(),
+          offset: 0,
+          issue: null,
+          execStart: null,
+          execEnd: null,
+          write: null,
+          rs: null
+        };
+      }
+      throw new Error(`第 ${index + 1} 行无法识别：${line}`);
+    }
+
+    function parseProgram(text) {
+      const parsed = text.split(/\n+/).map(parseInstruction).filter(Boolean);
+      if (!parsed.length) throw new Error("请输入至少一条指令。");
+      return parsed.map((inst, i) => ({ ...inst, id: i }));
+    }
+
+    function readJson(id, label) {
+      try {
+        const value = JSON.parse(el(id).value || "{}");
+        return Object.fromEntries(Object.entries(value).map(([k, v]) => [k.toUpperCase(), numeric(v)]));
+      } catch (error) {
+        throw new Error(`${label} 不是合法 JSON：${error.message}`);
+      }
+    }
+
+    function intInput(id, fallback) {
+      const value = Number.parseInt(el(id).value, 10);
+      return Number.isFinite(value) && value > 0 ? value : fallback;
+    }
+
+    function groupFor(op) {
+      if (op === "LD.D" || op === "SD.D") return "LOAD";
+      if (op === "ADD.D" || op === "SUB.D") return "ADD";
+      return "MUL";
+    }
+
+    function latencyFor(op, config) {
+      if (op === "LD.D") return config.latency.ld;
+      if (op === "SD.D") return config.latency.sd;
+      if (op === "ADD.D" || op === "SUB.D") return config.latency.add;
+      if (op === "MUL.D") return config.latency.mul;
+      return config.latency.div;
+    }
+
+    function makeStations(prefix, count) {
+      return Array.from({ length: count }, (_, i) => ({
+        name: `${prefix}${i + 1}`,
+        group: prefix,
+        busy: false,
+        op: "",
+        instId: null,
+        vj: null,
+        vk: null,
+        qj: null,
+        qk: null,
+        a: null,
+        remaining: 0,
+        executing: false,
+        result: null
+      }));
+    }
+
+    function createSimulation() {
+      const instructions = parseProgram(el("programInput").value);
+      const registers = readJson("registerInput", "寄存器");
+      const memoryRaw = JSON.parse(el("memoryInput").value || "{}");
+      const memory = {};
+      for (const [address, value] of Object.entries(memoryRaw)) {
+        memory[String(numeric(address)).toUpperCase()] = numeric(value);
+      }
+      const config = {
+        issueWidth: intInput("issueWidthInput", 1),
+        fu: {
+          LOAD: intInput("loadFuInput", 1),
+          ADD: intInput("addFuInput", 1),
+          MUL: intInput("mulFuInput", 1)
+        },
+        latency: {
+          ld: intInput("latLdInput", 2),
+          sd: intInput("latSdInput", 2),
+          add: intInput("latAddInput", 4),
+          mul: intInput("latMulInput", 10),
+          div: intInput("latDivInput", 20)
+        }
+      };
+      const stations = [
+        ...makeStations("LOAD", intInput("loadRsInput", 2)),
+        ...makeStations("ADD", intInput("addRsInput", 2)),
+        ...makeStations("MUL", intInput("mulRsInput", 2))
+      ];
+      const qi = {};
+      for (const inst of instructions) {
+        [inst.dest, inst.src1, inst.src2].filter(Boolean).forEach((reg) => {
+          if (!(reg in registers)) registers[reg] = 0;
+          qi[reg] = null;
+        });
+      }
+      Object.keys(registers).forEach((reg) => { qi[reg] = null; });
+      return { cycle: 0, pc: 0, instructions, registers, memory, qi, stations, config, events: ["模拟器已初始化。"], halted: false };
+    }
+
+    function operand(simState, reg) {
+      const producer = simState.qi[reg];
+      return producer ? { q: producer, v: null } : { q: null, v: simState.registers[reg] ?? 0 };
+    }
+
+    function freeStation(simState, op) {
+      const group = groupFor(op);
+      return simState.stations.find((rs) => rs.group === group && !rs.busy);
+    }
+
+    function compute(op, vj, vk) {
+      if (op === "ADD.D") return vj + vk;
+      if (op === "SUB.D") return vj - vk;
+      if (op === "MUL.D") return vj * vk;
+      if (op === "DIV.D") return vk === 0 ? Number.NaN : vj / vk;
+      return null;
+    }
+
+    function stationCanStart(simState, rs) {
+      if (!rs.busy || rs.executing || rs.qj || rs.qk) return false;
+      const activeInGroup = simState.stations.filter((other) => other.group === rs.group && other.executing).length;
+      return activeInGroup < (simState.config.fu[rs.group] || 1);
+    }
+
+    function releaseStation(rs) {
+      Object.assign(rs, {
+        busy: false,
+        op: "",
+        instId: null,
+        vj: null,
+        vk: null,
+        qj: null,
+        qk: null,
+        a: null,
+        remaining: 0,
+        executing: false,
+        result: null
+      });
+    }
+
+    function stepSimulation() {
+      if (!sim || sim.halted) return;
+      sim.cycle += 1;
+      const events = [];
+
+      for (const rs of sim.stations) {
+        if (!rs.executing) continue;
+        rs.remaining -= 1;
+        if (rs.remaining === 0) {
+          const inst = sim.instructions[rs.instId];
+          inst.execEnd = sim.cycle;
+          if (rs.op === "LD.D") {
+            const address = rs.vj + rs.a;
+            rs.result = sim.memory[String(address).toUpperCase()] ?? 0;
+            events.push(`${rs.name} 完成访存地址 ${address}，读出 ${fmt(rs.result)}。`);
+          } else if (rs.op === "SD.D") {
+            const address = rs.vj + rs.a;
+            sim.memory[String(address).toUpperCase()] = rs.vk;
+            inst.write = sim.cycle;
+            events.push(`${rs.name} 将 ${fmt(rs.vk)} 写入内存地址 ${address}，Store 完成。`);
+            releaseStation(rs);
+          } else {
+            rs.result = compute(rs.op, rs.vj, rs.vk);
+            events.push(`${rs.name} 执行完成，结果 ${fmt(rs.result)} 等待广播。`);
+          }
+        }
+      }
+
+      const readyToBroadcast = sim.stations.filter((rs) => rs.busy && rs.executing && rs.remaining === 0 && rs.op !== "SD.D");
+      if (readyToBroadcast.length > 0) {
+        const rs = readyToBroadcast[0];
+        const inst = sim.instructions[rs.instId];
+        inst.write = sim.cycle;
+        if (inst.dest && sim.qi[inst.dest] === rs.name) {
+          sim.registers[inst.dest] = rs.result;
+          sim.qi[inst.dest] = null;
+          events.push(`${rs.name} 通过 CDB 写回 ${inst.dest}=${fmt(rs.result)}。`);
+        } else {
+          events.push(`${rs.name} 广播 ${fmt(rs.result)}，但目标寄存器已被更新的生产者占用，WAW 被 Qi 保护。`);
+        }
+        for (const other of sim.stations) {
+          if (other.qj === rs.name) {
+            other.qj = null;
+            other.vj = rs.result;
+            events.push(`${other.name}.Qj 命中 ${rs.name}，Vj 更新为 ${fmt(rs.result)}。`);
+          }
+          if (other.qk === rs.name) {
+            other.qk = null;
+            other.vk = rs.result;
+            events.push(`${other.name}.Qk 命中 ${rs.name}，Vk 更新为 ${fmt(rs.result)}。`);
+          }
+        }
+        releaseStation(rs);
+      }
+
+      for (const rs of sim.stations) {
+        if (!stationCanStart(sim, rs)) continue;
+        const inst = sim.instructions[rs.instId];
+        rs.executing = true;
+        rs.remaining = latencyFor(rs.op, sim.config);
+        inst.execStart = sim.cycle;
+        events.push(`${rs.name} 开始执行 ${inst.raw}，预计 ${rs.remaining} 个周期。`);
+      }
+
+      let issued = 0;
+      while (sim.pc < sim.instructions.length && issued < sim.config.issueWidth) {
+        const inst = sim.instructions[sim.pc];
+        const rs = freeStation(sim, inst.op);
+        if (!rs) {
+          events.push(`第 ${sim.pc + 1} 条 ${inst.raw} 无空闲 ${groupFor(inst.op)} 保留站，流出暂停。`);
+          break;
+        }
+        rs.busy = true;
+        rs.op = inst.op;
+        rs.instId = inst.id;
+        rs.a = inst.offset;
+        rs.executing = false;
+        rs.remaining = 0;
+        rs.result = null;
+        const left = operand(sim, inst.src1);
+        rs.vj = left.v;
+        rs.qj = left.q;
+        if (inst.op === "SD.D") {
+          const data = operand(sim, inst.src2);
+          rs.vk = data.v;
+          rs.qk = data.q;
+        } else if (inst.op !== "LD.D") {
+          const right = operand(sim, inst.src2);
+          rs.vk = right.v;
+          rs.qk = right.q;
+        }
+        inst.issue = sim.cycle;
+        inst.rs = rs.name;
+        if (inst.dest) sim.qi[inst.dest] = rs.name;
+        events.push(`${inst.raw} 流出到 ${rs.name}${inst.dest ? `，Qi[${inst.dest}]←${rs.name}` : ""}。`);
+        sim.pc += 1;
+        issued += 1;
+      }
+
+      const done = sim.instructions.every((inst) => inst.write !== null);
+      sim.halted = done && sim.stations.every((rs) => !rs.busy);
+      if (sim.halted) events.push("全部指令执行完成。");
+      sim.events = events.length ? events : ["本周期没有状态变化。"];
+    }
+
+    function resetFromInputs() {
+      stopRun();
+      try {
+        sim = createSimulation();
+        el("errorBox").classList.remove("visible");
+        el("errorBox").textContent = "";
+        render();
+      } catch (error) {
+        el("errorBox").textContent = error.message;
+        el("errorBox").classList.add("visible");
+      }
+    }
+
+    function renderInstructionTable() {
+      el("instTable").innerHTML = sim.instructions.map((inst, i) => {
+        const done = inst.write !== null;
+        const issued = inst.issue !== null;
+        const running = inst.execStart !== null && inst.execEnd === null;
+        const waiting = issued && inst.execStart === null;
+        const rowClass = done ? "done-row" : (running ? "inst-running" : (waiting ? "inst-waiting" : (issued ? "inst-issued" : "")));
+        const issueCell = issued ? `<span class="chip info">${inst.issue}</span>` : '<span class="muted">—</span>';
+        const execStartCell = inst.execStart !== null ? `<span class="chip running">${inst.execStart}</span>` : (waiting ? '<span class="chip waiting">等待</span>' : '<span class="muted">—</span>');
+        const execEndCell = inst.execEnd !== null ? `<span class="chip done">${inst.execEnd}</span>` : (running ? '<span class="chip running">执行中</span>' : '<span class="muted">—</span>');
+        const writeCell = done ? `<span class="chip done">${inst.write}</span>` : '<span class="muted">—</span>';
+        return `<tr class="${rowClass}">
+          <td>${i + 1}</td>
+          <td class="mono">${inst.raw}</td>
+          <td>${issueCell}</td>
+          <td>${execStartCell}</td>
+          <td>${execEndCell}</td>
+          <td>${writeCell}</td>
+        </tr>`;
+      }).join("");
+    }
+
+    function renderRsTable() {
+      el("rsTable").innerHTML = sim.stations.map((rs) => {
+        const cls = rs.executing ? "rs-exec" : (rs.busy && !rs.qj && !rs.qk ? "rs-ready" : (rs.busy ? "rs-busy" : ""));
+        const qv = (q, v) => q ? `<span class="chip waiting">Q:${q}</span>` : `<span class="chip ready">${fmt(v)}</span>`;
+        return `<tr class="${cls}">
+          <td class="mono ${rs.busy ? "warn" : "muted"}">${rs.name}</td>
+          <td>${rs.busy ? '<span class="ok">Y</span>' : '<span class="muted">N</span>'}</td>
+          <td class="mono violet">${rs.op || "—"}</td>
+          <td>${rs.busy ? qv(rs.qj, rs.vj) : '<span class="muted">—</span>'}</td>
+          <td>${rs.busy ? qv(rs.qk, rs.vk) : '<span class="muted">—</span>'}</td>
+          <td>${rs.busy ? fmt(rs.a) : '<span class="muted">—</span>'}</td>
+          <td>${rs.executing ? `<span class="chip running">${rs.remaining}</span>` : '<span class="muted">—</span>'}</td>
+        </tr>`;
+      }).join("");
+    }
+
+    function pairRows(entries, valueClass) {
+      return entries.map(([key, value]) => `<tr><td class="mono muted">${key}</td><td>${valueClass(value)}</td></tr>`).join("");
+    }
+
+    function renderStateTables() {
+      renderRsTable();
+      const qiEntries = Object.entries(sim.qi).sort(([a], [b]) => a.localeCompare(b, undefined, { numeric: true }));
+      el("qiTable").innerHTML = pairRows(qiEntries, (value) => value
+        ? `<span class="chip waiting">等待 ${value}</span>`
+        : '<span class="chip ready">就绪 0</span>');
+      const regEntries = Object.entries(sim.registers).sort(([a], [b]) => a.localeCompare(b, undefined, { numeric: true }));
+      el("regTable").innerHTML = pairRows(regEntries, (value) => `<span class="chip ready">${fmt(value)}</span>`);
+    }
+
+    function renderEvents() {
+      el("eventLog").innerHTML = sim.events.map((event) => `<div class="log-item">${event}</div>`).join("");
+    }
+
+    function renderMetrics() {
+      const doneCount = sim.instructions.filter((inst) => inst.write !== null).length;
+      el("cycleMetric").textContent = sim.cycle;
+      el("pcMetric").textContent = sim.pc < sim.instructions.length ? sim.pc + 1 : "无";
+      el("doneMetric").textContent = `${doneCount}/${sim.instructions.length}`;
+      el("stateMetric").textContent = sim.halted ? "完成" : (sim.cycle === 0 ? "待开始" : "运行中");
+      el("stepBtn").disabled = sim.halted;
+      el("runBtn").textContent = timer ? "暂停" : "自动运行";
+    }
+
+    function render() {
+      if (!sim) return;
+      renderMetrics();
+      renderInstructionTable();
+      renderStateTables();
+      renderEvents();
+    }
+
+    function stopRun() {
+      if (timer) {
+        window.clearInterval(timer);
+        timer = null;
+      }
+    }
+
+    function runLoop() {
+      if (!sim || sim.halted) {
+        stopRun();
+        render();
+        return;
+      }
+      stepSimulation();
+      if (sim.halted) stopRun();
+      render();
+    }
+
+    function loadSample() {
+      el("programInput").value = sample.program;
+      el("registerInput").value = JSON.stringify(sample.registers, null, 2);
+      el("memoryInput").value = JSON.stringify(sample.memory, null, 2);
+      resetFromInputs();
+    }
+
+    el("sampleBtn").addEventListener("click", loadSample);
+    el("resetBtn").addEventListener("click", resetFromInputs);
+    el("stepBtn").addEventListener("click", () => { stepSimulation(); render(); });
+    el("runBtn").addEventListener("click", () => {
+      if (timer) {
+        stopRun();
+        render();
+      } else {
+        timer = window.setInterval(runLoop, 700);
+        runLoop();
+      }
+    });
+    ["programInput", "registerInput", "memoryInput", "loadRsInput", "addRsInput", "mulRsInput", "loadFuInput", "addFuInput", "mulFuInput", "latLdInput", "latSdInput", "latAddInput", "latMulInput", "latDivInput", "issueWidthInput"].forEach((id) => {
+      el(id).addEventListener("change", resetFromInputs);
+    });
+
+    loadSample();
+  </script>
+</body>
+</html>

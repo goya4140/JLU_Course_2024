@@ -1,0 +1,1403 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>监听协议 MSI 可视化模拟器</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #0b1020;
+      --panel: #121a2b;
+      --panel-2: #18233a;
+      --panel-3: #0e1526;
+      --line: #2b3957;
+      --text: #edf2ff;
+      --muted: #9aa9c7;
+      --soft: #6e7d9c;
+      --blue: #48c7ff;
+      --green: #67e8a5;
+      --yellow: #ffd166;
+      --red: #ff7a90;
+      --violet: #b9a7ff;
+      --orange: #ffb86b;
+      --chip: #202c47;
+      --shadow: 0 18px 45px rgba(0, 0, 0, .28);
+    }
+
+    * { box-sizing: border-box; }
+    html { min-width: 320px; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background: var(--bg);
+      color: var(--text);
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      letter-spacing: 0;
+    }
+
+    button, input, select { font: inherit; }
+
+    button, select {
+      border: 1px solid var(--line);
+      background: var(--panel-2);
+      color: var(--text);
+      border-radius: 6px;
+      padding: 8px 12px;
+    }
+
+    button { cursor: pointer; }
+    button:hover:not(:disabled) { border-color: var(--blue); }
+    button:disabled {
+      cursor: not-allowed;
+      color: var(--soft);
+      background: #101827;
+    }
+
+    select {
+      width: 100%;
+      outline: none;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    th, td {
+      border-bottom: 1px solid rgba(43, 57, 87, .72);
+      padding: 8px 9px;
+      text-align: left;
+      vertical-align: middle;
+      white-space: nowrap;
+    }
+
+    th {
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 650;
+    }
+
+    td {
+      color: var(--text);
+      font-size: 13px;
+    }
+
+    .app {
+      width: min(1480px, 100%);
+      margin: 0 auto;
+      padding: 24px;
+    }
+
+    .topbar {
+      display: grid;
+      grid-template-columns: minmax(280px, 1fr) auto;
+      align-items: end;
+      gap: 18px;
+      margin-bottom: 18px;
+    }
+
+    .title {
+      margin: 0;
+      font-size: clamp(24px, 3vw, 38px);
+      line-height: 1.1;
+    }
+
+    .subtitle {
+      margin: 8px 0 0;
+      color: var(--muted);
+      max-width: 850px;
+      line-height: 1.55;
+    }
+
+    .toolbar {
+      display: flex;
+      gap: 8px;
+      justify-content: flex-end;
+      flex-wrap: wrap;
+    }
+
+    .primary {
+      background: var(--blue);
+      border-color: var(--blue);
+      color: #06111c;
+      font-weight: 750;
+    }
+
+    .layout {
+      display: grid;
+      grid-template-columns: minmax(300px, 390px) minmax(0, 1fr);
+      gap: 16px;
+      align-items: start;
+    }
+
+    .layout > aside.stack:last-child {
+      grid-column: 2;
+    }
+
+    .stack {
+      display: grid;
+      gap: 16px;
+    }
+
+    .panel {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      box-shadow: var(--shadow);
+      min-width: 0;
+    }
+
+    .panel-head {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      align-items: center;
+      padding: 14px 16px;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .panel-title {
+      margin: 0;
+      color: var(--blue);
+      font-size: 15px;
+      font-weight: 780;
+    }
+
+    .panel-body { padding: 14px 16px 16px; }
+
+    .metrics {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 10px;
+    }
+
+    .metric {
+      min-width: 0;
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 12px;
+    }
+
+    .metric small {
+      display: block;
+      color: var(--muted);
+      margin-bottom: 5px;
+      font-size: 12px;
+    }
+
+    .metric strong {
+      display: block;
+      color: var(--yellow);
+      font-size: 20px;
+      line-height: 1.15;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .chip {
+      display: inline-flex;
+      align-items: center;
+      min-height: 22px;
+      border-radius: 999px;
+      padding: 2px 8px;
+      font-size: 12px;
+      color: var(--muted);
+      background: var(--chip);
+      border: 1px solid rgba(43, 57, 87, .9);
+    }
+
+    .chip.i {
+      color: var(--muted);
+      background: rgba(154, 169, 199, .08);
+      border-color: rgba(154, 169, 199, .28);
+    }
+
+    .chip.s {
+      color: var(--blue);
+      background: rgba(72, 199, 255, .08);
+      border-color: rgba(72, 199, 255, .35);
+    }
+
+    .chip.m {
+      color: var(--orange);
+      background: rgba(255, 184, 107, .1);
+      border-color: rgba(255, 184, 107, .4);
+    }
+
+    .chip.bus {
+      color: var(--violet);
+      background: rgba(185, 167, 255, .08);
+      border-color: rgba(185, 167, 255, .36);
+    }
+
+    .chip.ok {
+      color: var(--green);
+      background: rgba(103, 232, 165, .08);
+      border-color: rgba(103, 232, 165, .34);
+    }
+
+    .chip.bad {
+      color: var(--red);
+      background: rgba(255, 122, 144, .08);
+      border-color: rgba(255, 122, 144, .35);
+    }
+
+    .mono {
+      font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+    }
+
+    .muted { color: var(--muted); }
+    .info { color: var(--blue); }
+    .warn { color: var(--yellow); }
+    .danger { color: var(--red); }
+
+    .table-wrap {
+      overflow: auto;
+      border-radius: 6px;
+    }
+
+    .hint {
+      margin: 0;
+      color: var(--muted);
+      line-height: 1.55;
+      font-size: 13px;
+    }
+
+    .config-grid {
+      display: grid;
+      gap: 8px;
+    }
+
+    .config-row, .request-row, .answer-row {
+      display: grid;
+      grid-template-columns: 88px 1fr;
+      gap: 10px;
+      align-items: center;
+      padding: 8px 0;
+      border-bottom: 1px solid rgba(43, 57, 87, .5);
+    }
+
+    .config-row:last-child, .request-row:last-child, .answer-row:last-child {
+      border-bottom: none;
+    }
+
+    .request-row {
+      grid-template-columns: 28px 1fr auto;
+      border: 1px solid transparent;
+      border-radius: 6px;
+      padding: 8px;
+    }
+
+    .request-row.active {
+      border-color: rgba(72, 199, 255, .55);
+      background: rgba(72, 199, 255, .07);
+    }
+
+    .request-row.done {
+      color: var(--soft);
+      background: rgba(103, 232, 165, .05);
+    }
+
+    .option-list {
+      display: grid;
+      gap: 8px;
+      margin: 0;
+      padding: 0;
+      list-style: none;
+    }
+
+    .option-list li {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .system {
+      position: relative;
+      display: grid;
+      gap: 14px;
+    }
+
+    .protocol-diagram {
+      border: 1px solid rgba(72, 199, 255, .22);
+      border-radius: 8px;
+      background: #edf8e7;
+      overflow: hidden;
+    }
+
+    .protocol-diagram svg {
+      display: block;
+      width: 100%;
+      height: auto;
+    }
+
+    .diagram-note {
+      display: grid;
+      gap: 6px;
+      padding: 10px 12px;
+      border-top: 1px solid rgba(43, 57, 87, .35);
+      background: rgba(14, 21, 38, .96);
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.45;
+    }
+
+    .diagram-note strong {
+      color: var(--text);
+      font-weight: 750;
+    }
+
+    .cpu-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 14px;
+    }
+
+    .cpu-card {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--panel-3);
+      overflow: hidden;
+    }
+
+    .cpu-card.active {
+      border-color: var(--blue);
+      box-shadow: 0 0 0 3px rgba(72, 199, 255, .12);
+    }
+
+    .cpu-card.snoop {
+      border-color: var(--yellow);
+      box-shadow: 0 0 0 3px rgba(255, 209, 102, .1);
+    }
+
+    .cpu-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 11px 12px;
+      border-bottom: 1px solid var(--line);
+      font-weight: 760;
+    }
+
+    .cache-row.current td {
+      background: rgba(72, 199, 255, .08);
+    }
+
+    .cache-row.match td {
+      background: rgba(255, 209, 102, .08);
+    }
+
+    .cache-row.changed td {
+      outline: 1px solid rgba(103, 232, 165, .3);
+      outline-offset: -1px;
+    }
+
+    .bus {
+      border: 1px solid rgba(185, 167, 255, .36);
+      border-radius: 8px;
+      background: linear-gradient(90deg, rgba(72, 199, 255, .08), rgba(185, 167, 255, .08));
+      padding: 14px;
+      display: grid;
+      gap: 8px;
+    }
+
+    .bus-line {
+      height: 4px;
+      border-radius: 999px;
+      background: linear-gradient(90deg, var(--blue), var(--violet), var(--yellow));
+      opacity: .95;
+    }
+
+    .address-split {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 8px;
+    }
+
+    .addr-part {
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      padding: 10px;
+      background: var(--panel-3);
+      min-width: 0;
+    }
+
+    .addr-part small {
+      display: block;
+      color: var(--muted);
+      margin-bottom: 4px;
+    }
+
+    .tabs {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .tab-btn.active {
+      color: #06111c;
+      background: var(--blue);
+      border-color: var(--blue);
+      font-weight: 750;
+    }
+
+    .log {
+      display: grid;
+      gap: 8px;
+      max-height: 520px;
+      overflow: auto;
+      padding-right: 4px;
+    }
+
+    .log-item {
+      border: 1px solid rgba(43, 57, 87, .72);
+      background: var(--panel-3);
+      border-radius: 6px;
+      padding: 9px 10px;
+      line-height: 1.45;
+      font-size: 13px;
+    }
+
+    .practice {
+      display: grid;
+      gap: 10px;
+    }
+
+    .field {
+      display: grid;
+      gap: 6px;
+      min-width: 0;
+    }
+
+    .field span {
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .feedback {
+      min-height: 22px;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.45;
+    }
+
+    .final-grid {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 10px;
+    }
+
+    .mini-card {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--panel-3);
+      overflow: auto;
+    }
+
+    .mini-title {
+      padding: 9px 10px;
+      color: var(--blue);
+      border-bottom: 1px solid var(--line);
+      font-weight: 750;
+    }
+
+    .answer-row {
+      grid-template-columns: 52px 1fr;
+      font-size: 13px;
+    }
+
+    @media (max-width: 1180px) {
+      .layout { grid-template-columns: 1fr; }
+      .topbar { grid-template-columns: 1fr; }
+      .toolbar { justify-content: flex-start; }
+      .final-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    }
+
+    @media (max-width: 720px) {
+      .app { padding: 14px; }
+      .cpu-grid, .metrics, .address-split, .final-grid { grid-template-columns: 1fr; }
+      th, td { padding: 7px 8px; }
+    }
+  </style>
+</head>
+<body>
+  <main class="app">
+    <header class="topbar">
+      <div>
+        <h1 class="title">监听协议 MSI 可视化模拟器</h1>
+        <p class="subtitle">围绕例题逐步观察地址拆解、本地命中判断、总线广播、其他 Cache 监听响应和最终状态填表。</p>
+      </div>
+      <div class="toolbar" aria-label="模拟控制">
+        <button id="resetBtn" type="button">重新开始</button>
+        <button id="prevBtn" type="button">上一步</button>
+        <button id="stepBtn" type="button" class="primary">单步</button>
+        <button id="runBtn" type="button">自动运行</button>
+        <button id="answerBtn" type="button">显示答案</button>
+        <select id="modeSelect" aria-label="模式切换">
+          <option value="explain">讲解模式</option>
+          <option value="practice">练习模式</option>
+        </select>
+      </div>
+    </header>
+
+    <section class="layout">
+      <aside class="stack">
+        <section class="panel">
+          <div class="panel-head">
+            <h2 class="panel-title">系统配置</h2>
+            <span class="chip bus">MSI</span>
+          </div>
+          <div class="panel-body config-grid">
+            <div class="config-row"><span class="muted">CPU 数量</span><span>4 个：CPU00、CPU01、CPU10、CPU11</span></div>
+            <div class="config-row"><span class="muted">Cache</span><span>16 块，块大小 16B，直接映射</span></div>
+            <div class="config-row"><span class="muted">主存</span><span>16MB，字节编址</span></div>
+            <div class="config-row"><span class="muted">写策略</span><span>写作废 + 写回法</span></div>
+            <div class="config-row"><span class="muted">地址拆分</span><span><span class="chip s">Tag 16 位</span> <span class="chip bus">Index 4 位</span> <span class="chip m">Offset 4 位</span></span></div>
+          </div>
+        </section>
+
+        <section class="panel">
+          <div class="panel-head">
+            <h2 class="panel-title">访存请求序列</h2>
+            <span class="chip" id="requestProgress">0 / 4</span>
+          </div>
+          <div class="panel-body">
+            <div id="requestList" class="stack"></div>
+          </div>
+        </section>
+
+        <section class="panel">
+          <div class="panel-head">
+            <h2 class="panel-title">本地操作选项</h2>
+          </div>
+          <div class="panel-body">
+            <ul class="option-list">
+              <li><span class="chip bus">1</span> 将 ReadMiss 放到总线上</li>
+              <li><span class="chip bus">2</span> 将 WriteMiss 放到总线上</li>
+              <li><span class="chip bad">3</span> 将 Invalidate 放到总线上</li>
+              <li><span class="chip ok">4</span> 读本地数据</li>
+              <li><span class="chip ok">5</span> 写本地数据</li>
+            </ul>
+          </div>
+        </section>
+
+        <section class="panel" id="practicePanel">
+          <div class="panel-head">
+            <h2 class="panel-title">练习判定</h2>
+          </div>
+          <div class="panel-body practice">
+            <label class="field">
+              <span>本地请求</span>
+              <select id="guessRequest">
+                <option value="">请选择</option>
+                <option>ReadHit</option>
+                <option>ReadMiss</option>
+                <option>WriteHit</option>
+                <option>WriteMiss</option>
+              </select>
+            </label>
+            <label class="field">
+              <span>状态转换</span>
+              <select id="guessTransition">
+                <option value="">请选择</option>
+                <option>00 00</option>
+                <option>00 10</option>
+                <option>00 11</option>
+                <option>10 10</option>
+                <option>10 11</option>
+                <option>11 11</option>
+              </select>
+            </label>
+            <label class="field">
+              <span>本地操作</span>
+              <select id="guessOperation">
+                <option value="">请选择</option>
+                <option value="1">1. ReadMiss 上总线</option>
+                <option value="2">2. WriteMiss 上总线</option>
+                <option value="3">3. Invalidate 上总线</option>
+                <option value="4">4. 读本地数据</option>
+                <option value="5">5. 写本地数据</option>
+              </select>
+            </label>
+            <button id="checkBtn" type="button">检查当前请求</button>
+            <div id="feedback" class="feedback"></div>
+          </div>
+        </section>
+      </aside>
+
+      <section class="stack">
+        <div class="metrics">
+          <div class="metric"><small>当前请求</small><strong id="metricRequest">初始</strong></div>
+          <div class="metric"><small>当前阶段</small><strong id="metricStage">准备</strong></div>
+          <div class="metric"><small>总线动作</small><strong id="metricBus">空闲</strong></div>
+          <div class="metric"><small>数据来源</small><strong id="metricSource">无</strong></div>
+        </div>
+
+        <section class="panel">
+          <div class="panel-head">
+            <h2 class="panel-title">协议通信示意</h2>
+            <div>
+              <span class="chip i">I/00</span>
+              <span class="chip s">S/10</span>
+              <span class="chip m">M/11</span>
+            </div>
+          </div>
+          <div class="panel-body system">
+            <div id="protocolDiagram" class="protocol-diagram"></div>
+            <div id="cpuGrid" class="cpu-grid"></div>
+            <div class="bus">
+              <div class="bus-line"></div>
+              <div id="busText" class="mono">Bus: Idle</div>
+              <p id="sourceText" class="hint">当前没有共享总线请求。</p>
+            </div>
+          </div>
+        </section>
+
+        <section class="panel">
+          <div class="panel-head">
+            <h2 class="panel-title">地址拆解</h2>
+            <span class="chip mono" id="addressText">--</span>
+          </div>
+          <div class="panel-body">
+            <div class="address-split">
+              <div class="addr-part"><small>Tag</small><strong class="mono" id="addrTag">--</strong></div>
+              <div class="addr-part"><small>Index</small><strong class="mono" id="addrIndex">--</strong></div>
+              <div class="addr-part"><small>Offset</small><strong class="mono" id="addrOffset">--</strong></div>
+            </div>
+          </div>
+        </section>
+
+        <section class="panel">
+          <div class="panel-head">
+            <h2 class="panel-title">最终状态表</h2>
+            <span class="chip" id="finalHint">完成后自动汇总</span>
+          </div>
+          <div class="panel-body">
+            <div id="finalGrid" class="final-grid"></div>
+          </div>
+        </section>
+      </section>
+
+      <aside class="stack">
+        <section class="panel">
+          <div class="panel-head">
+            <h2 class="panel-title">推演面板</h2>
+            <div class="tabs">
+              <button class="tab-btn active" data-tab="steps" type="button">步骤解释</button>
+              <button class="tab-btn" data-tab="answers" type="button">填空表</button>
+              <button class="tab-btn" data-tab="rules" type="button">规则</button>
+            </div>
+          </div>
+          <div class="panel-body">
+            <div id="stepsTab" class="tab-panel">
+              <div id="eventLog" class="log"></div>
+            </div>
+            <div id="answersTab" class="tab-panel" hidden>
+              <div id="answerList"></div>
+            </div>
+            <div id="rulesTab" class="tab-panel" hidden>
+              <div class="table-wrap">
+                <table>
+                  <thead><tr><th>当前状态</th><th>CPU 读</th><th>CPU 写</th></tr></thead>
+                  <tbody>
+                    <tr><td><span class="chip i">I</span></td><td>ReadMiss，变 S</td><td>WriteMiss，变 M</td></tr>
+                    <tr><td><span class="chip s">S</span></td><td>ReadHit，保持 S</td><td>WriteHit，发 Invalidate，变 M</td></tr>
+                    <tr><td><span class="chip m">M</span></td><td>ReadHit，保持 M</td><td>WriteHit，保持 M</td></tr>
+                  </tbody>
+                </table>
+              </div>
+              <div class="table-wrap" style="margin-top: 12px;">
+                <table>
+                  <thead><tr><th>监听状态</th><th>别人 ReadMiss</th><th>别人 WriteMiss / Invalidate</th></tr></thead>
+                  <tbody>
+                    <tr><td><span class="chip i">I</span></td><td>无动作</td><td>无动作</td></tr>
+                    <tr><td><span class="chip s">S</span></td><td>保持 S</td><td>变 I</td></tr>
+                    <tr><td><span class="chip m">M</span></td><td>写回，变 S</td><td>写回，变 I</td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </section>
+      </aside>
+    </section>
+  </main>
+
+  <script>
+    const CPUs = ["CPU00", "CPU01", "CPU10", "CPU11"];
+    const stateBits = { I: "00", S: "10", M: "11" };
+    const stateName = { I: "Invalid", S: "Shared", M: "Modified" };
+    const stageNames = ["地址拆解", "本地 Cache 查找", "本地请求分类", "本地状态与操作", "总线广播与监听", "监听者状态更新"];
+    const maxProgress = 24;
+
+    const initialCaches = {
+      CPU00: [
+        { index: "0H", tag: "12FFH", state: "I", data: "--" },
+        { index: "1H", tag: "28BEH", state: "S", data: "A=20" }
+      ],
+      CPU01: [
+        { index: "0H", tag: "0023H", state: "M", data: "X=7" },
+        { index: "1H", tag: "34EAH", state: "S", data: "B=9" }
+      ],
+      CPU10: [
+        { index: "0H", tag: "0124H", state: "S", data: "C=12" },
+        { index: "1H", tag: "28BEH", state: "S", data: "A=20" }
+      ],
+      CPU11: [
+        { index: "0H", tag: "8A7FH", state: "I", data: "--" },
+        { index: "1H", tag: "34EAH", state: "S", data: "B=9" }
+      ]
+    };
+
+    const initialMemory = {
+      "0023H|0H": { name: "X", data: "X=5", note: "旧值" },
+      "28BEH|1H": { name: "A", data: "A=20", note: "一致" },
+      "34EAH|1H": { name: "B", data: "B=9", note: "一致" },
+      "0124H|0H": { name: "C", data: "C=12", note: "一致" }
+    };
+
+    const writeValues = {
+      "34EA1FH": "B=13",
+      "28BE11H": "A=25"
+    };
+
+    const requests = [
+      { cpu: "CPU00", op: "READ", address: "002302H" },
+      { cpu: "CPU01", op: "WRITE", address: "34EA1FH" },
+      { cpu: "CPU10", op: "READ", address: "28BE1AH" },
+      { cpu: "CPU11", op: "WRITE", address: "28BE11H" }
+    ].map((request) => ({ ...request, ...splitAddress(request.address) }));
+
+    const answerMap = {
+      1: "ReadMiss", 2: "00 10", 3: "1",
+      4: "WriteHit", 5: "10 11", 6: "3",
+      7: "ReadHit", 8: "10 10", 9: "4",
+      10: "WriteMiss", 11: "00 11", 12: "2",
+      13: "0023H", 14: "10", 15: "28BEH", 16: "00",
+      17: "0023H", 18: "10", 19: "34EAH", 20: "11",
+      21: "0124H", 22: "10", 23: "28BEH", 24: "00",
+      25: "8A7FH", 26: "00", 27: "28BEH", 28: "11"
+    };
+
+    const el = (id) => document.getElementById(id);
+    let progress = 0;
+    let showAnswers = false;
+    let timer = null;
+    let activeTab = "steps";
+
+    function splitAddress(address) {
+      const hex = address.replace(/H$/i, "").toUpperCase().padStart(6, "0");
+      return {
+        tag: `${hex.slice(0, 4)}H`,
+        index: `${hex.slice(4, 5)}H`,
+        offset: `${hex.slice(5, 6)}H`
+      };
+    }
+
+    function cloneCaches(caches) {
+      return Object.fromEntries(Object.entries(caches).map(([cpu, rows]) => [
+        cpu,
+        rows.map((row) => ({ ...row }))
+      ]));
+    }
+
+    function cloneMemory(memory) {
+      return Object.fromEntries(Object.entries(memory).map(([key, value]) => [key, { ...value }]));
+    }
+
+    function blockKey(tag, index) {
+      return `${tag}|${index}`;
+    }
+
+    function rowFor(caches, cpu, index) {
+      return caches[cpu].find((row) => row.index === index);
+    }
+
+    function classify(row, request) {
+      const validMatch = row && row.state !== "I" && row.tag === request.tag;
+      if (request.op === "READ") return validMatch ? "ReadHit" : "ReadMiss";
+      return validMatch ? "WriteHit" : "WriteMiss";
+    }
+
+    function busActionFor(localRequest, beforeState) {
+      if (localRequest === "ReadMiss") return "ReadMiss";
+      if (localRequest === "WriteMiss") return "WriteMiss";
+      if (localRequest === "WriteHit" && beforeState === "S") return "Invalidate";
+      return "Local";
+    }
+
+    function operationOption(localRequest, beforeState, op) {
+      const busAction = busActionFor(localRequest, beforeState);
+      if (busAction === "ReadMiss") return "1";
+      if (busAction === "WriteMiss") return "2";
+      if (busAction === "Invalidate") return "3";
+      return op === "READ" ? "4" : "5";
+    }
+
+    function localAfterState(localRequest, beforeState) {
+      if (localRequest === "ReadMiss") return "S";
+      if (localRequest === "WriteMiss") return "M";
+      if (localRequest === "WriteHit" && beforeState === "S") return "M";
+      return beforeState;
+    }
+
+    function analyzeRequest(caches, request) {
+      const localRow = rowFor(caches, request.cpu, request.index);
+      const beforeState = localRow.state;
+      const beforeTag = localRow.tag;
+      const localRequest = classify(localRow, request);
+      const busAction = busActionFor(localRequest, beforeState);
+      const afterState = localAfterState(localRequest, beforeState);
+      const option = operationOption(localRequest, beforeState, request.op);
+      const matching = CPUs.filter((cpu) => {
+        if (cpu === request.cpu) return false;
+        const row = rowFor(caches, cpu, request.index);
+        return row && row.state !== "I" && row.tag === request.tag;
+      });
+      const source = (() => {
+        if (busAction === "Local") return request.op === "READ" ? "本地 Cache" : "本地 Cache 独占写";
+        const owner = matching.find((cpu) => rowFor(caches, cpu, request.index).state === "M");
+        if (owner) return `${owner} 的 M 块写回并提供`;
+        if (busAction === "Invalidate") return "无需取数，只广播作废";
+        return "主存提供";
+      })();
+
+      return {
+        localRow,
+        beforeState,
+        beforeTag,
+        localRequest,
+        busAction,
+        afterState,
+        option,
+        matching,
+        source,
+        transition: `${stateBits[beforeState]} ${stateBits[afterState]}`
+      };
+    }
+
+    function applyLocal(caches, memory, request, analysis) {
+      const row = rowFor(caches, request.cpu, request.index);
+      const key = blockKey(request.tag, request.index);
+      const owner = analysis.matching.find((cpu) => rowFor(caches, cpu, request.index).state === "M");
+      if (analysis.localRequest === "ReadMiss") {
+        row.tag = request.tag;
+        row.data = owner ? rowFor(caches, owner, request.index).data : (memory[key]?.data || "Mem");
+      } else if (analysis.localRequest === "WriteMiss") {
+        row.tag = request.tag;
+        row.data = writeValues[request.address] || `${memory[key]?.name || "D"}=new`;
+        memory[key] = { ...(memory[key] || { name: "D", data: "旧值" }), note: "主存旧值，M 块更新" };
+      } else if (analysis.localRequest === "WriteHit") {
+        row.data = writeValues[request.address] || `${memory[key]?.name || "D"}=new`;
+        memory[key] = { ...(memory[key] || { name: "D", data: "旧值" }), note: "主存旧值，M 块更新" };
+      }
+      row.state = analysis.afterState;
+    }
+
+    function applySnoop(caches, memory, request, analysis, changes) {
+      if (analysis.busAction === "Local") return;
+      for (const cpu of CPUs) {
+        if (cpu === request.cpu) continue;
+        const row = rowFor(caches, cpu, request.index);
+        if (!row || row.state === "I" || row.tag !== request.tag) continue;
+        const before = row.state;
+        if (analysis.busAction === "ReadMiss") {
+          if (row.state === "M") {
+            memory[blockKey(row.tag, row.index)] = { name: memory[blockKey(row.tag, row.index)]?.name || "D", data: row.data, note: "写回后一致" };
+            row.state = "S";
+          }
+        } else if (analysis.busAction === "WriteMiss" || analysis.busAction === "Invalidate") {
+          if (row.state === "M") {
+            memory[blockKey(row.tag, row.index)] = { name: memory[blockKey(row.tag, row.index)]?.name || "D", data: row.data, note: "写回后被作废" };
+          }
+          row.state = "I";
+        }
+        if (before !== row.state) changes.push({ cpu, index: request.index, before, after: row.state });
+      }
+    }
+
+    function applyFull(caches, memory, request) {
+      const analysis = analyzeRequest(caches, request);
+      const changes = [];
+      applyLocal(caches, memory, request, analysis);
+      changes.push({ cpu: request.cpu, index: request.index, before: analysis.beforeState, after: analysis.afterState });
+      applySnoop(caches, memory, request, analysis, changes);
+      return { analysis, changes };
+    }
+
+    function buildViewState() {
+      const caches = cloneCaches(initialCaches);
+      const memory = cloneMemory(initialMemory);
+      const completedRequests = progress === 0 ? 0 : Math.floor((progress - 1) / 6);
+      const currentStage = progress === 0 ? 0 : ((progress - 1) % 6) + 1;
+      const currentRequestIndex = progress === 0 ? -1 : Math.floor((progress - 1) / 6);
+      const completedAnalyses = [];
+
+      for (let i = 0; i < completedRequests; i += 1) {
+        completedAnalyses.push(applyFull(caches, memory, requests[i]));
+      }
+
+      let current = null;
+      const changes = [];
+      if (currentRequestIndex >= 0 && currentRequestIndex < requests.length) {
+        const request = requests[currentRequestIndex];
+        const analysis = analyzeRequest(caches, request);
+        current = { request, analysis, stage: currentStage, index: currentRequestIndex };
+        if (currentStage >= 4) {
+          applyLocal(caches, memory, request, analysis);
+          changes.push({ cpu: request.cpu, index: request.index, before: analysis.beforeState, after: analysis.afterState });
+        }
+        if (currentStage >= 6) applySnoop(caches, memory, request, analysis, changes);
+      }
+
+      return { caches, memory, current, changes, completedAnalyses };
+    }
+
+    function stateChip(state) {
+      return `<span class="chip ${state.toLowerCase()}">${state}/${stateBits[state]}</span>`;
+    }
+
+    function requestLabel(request) {
+      return `${request.cpu} ${request.op === "READ" ? "读" : "写"} ${request.address}`;
+    }
+
+    function svgText(value) {
+      return String(value).replace(/[&<>"']/g, (char) => ({
+        "&": "&amp;",
+        "<": "&lt;",
+        ">": "&gt;",
+        '"': "&quot;",
+        "'": "&#39;"
+      }[char]));
+    }
+
+    function stateColor(state) {
+      if (state === "S") return "#aef38f";
+      if (state === "M") return "#ff5d9a";
+      return "#d8d8d8";
+    }
+
+    function requestColor(name) {
+      if (name === "ReadHit") return "#58a8ff";
+      if (name === "ReadMiss") return "#b100d8";
+      if (name === "WriteHit") return "#e00022";
+      if (name === "WriteMiss") return "#e26c00";
+      if (name === "Invalidate") return "#e00022";
+      return "#333333";
+    }
+
+    function transitionText(change) {
+      if (!change || change.before === change.after) return "";
+      return `${stateName[change.before]} -> ${stateName[change.after]}`;
+    }
+
+    function dataForCpu(view, cpu) {
+      const current = view.current;
+      if (!current) return "CPU data: --";
+      const { request, analysis, stage } = current;
+      if (cpu === request.cpu) {
+        if (request.op === "READ") {
+          const row = rowFor(view.caches, cpu, request.index);
+          return stage >= 4 ? `Load ${row.data}` : `Load ${request.address}`;
+        }
+        const value = writeValues[request.address] || "new";
+        return stage >= 4 ? `Store ${value}` : `Store ${request.address}`;
+      }
+      if (stage >= 5 && analysis.matching.includes(cpu)) {
+        const row = rowFor(view.caches, cpu, request.index);
+        if (analysis.busAction === "ReadMiss" && analysis.beforeState !== "I") return `Snoop: ${row.data}`;
+        if (analysis.busAction === "Invalidate" || analysis.busAction === "WriteMiss") return "Snoop: Invalidate";
+      }
+      return "CPU data: --";
+    }
+
+    function renderProtocolDiagram(view) {
+      const current = view.current;
+      const positions = {
+        CPU00: { x: 125, y: 78 },
+        CPU01: { x: 392, y: 78 },
+        CPU10: { x: 659, y: 78 },
+        CPU11: { x: 926, y: 78 }
+      };
+      const busY = 410;
+      const changedByCpu = Object.fromEntries(view.changes.map((change) => [change.cpu, change]));
+      const targetIndex = current ? current.request.index : "0H";
+      const activeCpu = current ? current.request.cpu : null;
+      const matching = new Set(current && current.stage >= 5 ? current.analysis.matching : []);
+      const localLabel = current && current.stage >= 3 ? current.analysis.localRequest : "Local request";
+      const busLabel = current && current.stage >= 5 && current.analysis.busAction !== "Local"
+        ? current.analysis.busAction
+        : "BUS";
+
+      const cpuNodes = CPUs.map((cpu) => {
+        const pos = positions[cpu];
+        const rows = view.caches[cpu];
+        const isActive = cpu === activeCpu;
+        const isSnoop = matching.has(cpu);
+        const change = changedByCpu[cpu];
+        const stroke = isActive ? "#169bd5" : (isSnoop ? "#ffb000" : "#222222");
+        const strokeWidth = isActive || isSnoop ? 4 : 2;
+        const transition = transitionText(change);
+        const snoopText = isSnoop && current && current.stage >= 5 ? `Snoop ${current.analysis.busAction}` : "";
+        const showLocalArrow = isActive && current && current.stage >= 2;
+        const showBusArrow = isActive && current && current.stage >= 5 && current.analysis.busAction !== "Local";
+        const showSnoopArrow = isSnoop && current && current.stage >= 5;
+        const cacheStroke = isActive ? "#169bd5" : (isSnoop ? "#ffb000" : "#333333");
+        const cacheRows = rows.map((row, rowIndex) => {
+          const y = 152 + rowIndex * 64;
+          const isTarget = current && row.index === current.request.index;
+          const isMatch = current && row.index === current.request.index && row.tag === current.request.tag && row.state !== "I";
+          const fill = isTarget ? "#fff0bd" : "#ffe4a8";
+          const rowStroke = isMatch ? "#ff3333" : "#333333";
+          return `
+            <rect x="${pos.x - 68}" y="${y}" width="136" height="62" fill="${fill}" stroke="${rowStroke}" stroke-width="${isMatch ? 3 : 1.5}" rx="2"></rect>
+            <rect x="${pos.x - 68}" y="${y + 35}" width="136" height="27" fill="${stateColor(row.state)}" stroke="#333" stroke-width="1"></rect>
+            <text x="${pos.x - 59}" y="${y + 23}" font-size="14" font-weight="700" font-family="monospace" fill="#111">${row.index}</text>
+            <text x="${pos.x - 23}" y="${y + 23}" font-size="14" font-family="monospace" fill="#111">${svgText(row.tag)}</text>
+            <text x="${pos.x + 26}" y="${y + 23}" font-size="13" font-family="monospace" fill="#111">${svgText(row.data)}</text>
+            <text x="${pos.x}" y="${y + 54}" text-anchor="middle" font-size="15" font-weight="800" fill="#111">${row.state}/${stateBits[row.state]}</text>
+          `;
+        }).join("");
+
+        return `
+          <g>
+            <text x="${pos.x}" y="28" text-anchor="middle" font-size="23" font-weight="800" fill="#111">${cpu}</text>
+            <circle cx="${pos.x}" cy="${pos.y}" r="31" fill="#dddddd" stroke="${stroke}" stroke-width="${strokeWidth}"></circle>
+            <text x="${pos.x}" y="${pos.y + 7}" text-anchor="middle" font-size="18" font-weight="700" fill="#111">CPU</text>
+            <text x="${pos.x}" y="123" text-anchor="middle" font-size="14" font-weight="700" fill="#334">${svgText(dataForCpu(view, cpu))}</text>
+            <line x1="${pos.x}" y1="${pos.y + 31}" x2="${pos.x}" y2="152" stroke="#333" stroke-width="2"></line>
+            <text x="${pos.x - 85}" y="218" text-anchor="end" font-size="18" fill="#111">Cache</text>
+            <rect x="${pos.x - 68}" y="152" width="136" height="128" fill="none" stroke="${cacheStroke}" stroke-width="${strokeWidth}" rx="3"></rect>
+            ${cacheRows}
+            <line x1="${pos.x}" y1="280" x2="${pos.x}" y2="${busY}" stroke="#333" stroke-width="2"></line>
+            ${showLocalArrow ? `
+              <path d="M ${pos.x + 38} 96 C ${pos.x + 92} 124, ${pos.x + 93} 159, ${pos.x + 70} 182" fill="none" stroke="${requestColor(localLabel)}" stroke-width="4" marker-end="url(#arrowHead)"></path>
+              <text x="${pos.x + 80}" y="143" font-size="20" font-weight="800" fill="${requestColor(localLabel)}">${svgText(localLabel)}</text>
+            ` : ""}
+            ${showBusArrow ? `
+              <path d="M ${pos.x + 28} 280 C ${pos.x + 30} 336, ${pos.x + 58} 382, ${pos.x + 98} ${busY}" fill="none" stroke="${requestColor(current.analysis.busAction)}" stroke-width="4" marker-end="url(#arrowHead)"></path>
+            ` : ""}
+            ${showSnoopArrow ? `
+              <path d="M ${pos.x + 98} ${busY} C ${pos.x + 53} 385, ${pos.x + 31} 334, ${pos.x + 31} 280" fill="none" stroke="#ff3333" stroke-width="4" marker-end="url(#arrowHead)"></path>
+              <text x="${pos.x + 58}" y="350" font-size="16" font-weight="800" fill="#d6001c">${svgText(snoopText)}</text>
+            ` : ""}
+            ${transition ? `
+              <text x="${pos.x}" y="304" text-anchor="middle" font-size="15" font-weight="800" fill="#128a20">${svgText(transition)}</text>
+            ` : ""}
+          </g>
+        `;
+      }).join("");
+
+      const memoryRows = Object.entries(view.memory).map(([key, item], index) => {
+        const [tag, idx] = key.split("|");
+        const y = 64 + index * 34;
+        const stale = /旧值|M 块/.test(item.note);
+        return `
+          <g>
+            <rect x="1012" y="${y - 20}" width="142" height="29" rx="3" fill="${stale ? "#ffe1e7" : "#e7fff2"}" stroke="${stale ? "#e65b73" : "#1b9d55"}" stroke-width="1.2"></rect>
+            <text x="1020" y="${y}" font-size="12" font-family="monospace" fill="#111">${tag}/${idx}</text>
+            <text x="1086" y="${y}" font-size="12" font-weight="800" fill="#111">${svgText(item.data)}</text>
+            <text x="1130" y="${y}" font-size="11" fill="${stale ? "#c8002f" : "#167a3a"}">${svgText(item.note)}</text>
+          </g>
+        `;
+      }).join("");
+
+      const legend = current
+        ? `${requestLabel(current.request)} | ${current.stage >= 3 ? current.analysis.localRequest : "等待判断"} | ${current.stage >= 4 ? current.analysis.transition : "状态待更新"}`
+        : "点击单步后，图中会显示 CPU 本地请求、Cache 状态带、总线广播和监听响应。";
+      const note = current
+        ? (current.stage >= 5
+          ? `${current.analysis.busAction === "Local" ? "本次不上总线" : `总线广播 ${current.analysis.busAction}`}；${current.analysis.source}。`
+          : "当前阶段聚焦本地 CPU 与本地 Cache 的命中判断。")
+        : "颜色含义：灰色 Invalid，绿色 Shared，粉色 Modified；红色箭头表示总线监听导致的状态变化。";
+
+      el("protocolDiagram").innerHTML = `
+        <svg viewBox="0 0 1180 510" role="img" aria-label="监听协议 CPU Cache 总线通信示意图">
+          <defs>
+            <marker id="arrowHead" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+              <path d="M 0 0 L 10 5 L 0 10 z" fill="context-stroke"></path>
+            </marker>
+          </defs>
+          <rect x="0" y="0" width="1180" height="510" fill="#edf8e7"></rect>
+          ${cpuNodes}
+          <line x1="44" y1="${busY}" x2="985" y2="${busY}" stroke="#000" stroke-width="8" stroke-linecap="square"></line>
+          <text x="514" y="${busY - 18}" text-anchor="middle" font-size="28" font-weight="900" fill="#111">BUS</text>
+          <text x="514" y="${busY + 48}" text-anchor="middle" font-size="28" font-weight="900" fill="${requestColor(busLabel)}">${svgText(busLabel)}</text>
+          <text x="514" y="488" text-anchor="middle" font-size="17" font-weight="800" fill="#111">${svgText(legend)}</text>
+          <rect x="1000" y="30" width="166" height="170" rx="6" fill="#fff6d4" stroke="#333" stroke-width="2"></rect>
+          <text x="1083" y="52" text-anchor="middle" font-size="20" font-weight="900" fill="#111">Main Memory</text>
+          ${memoryRows}
+        </svg>
+        <div class="diagram-note">
+          <strong>${svgText(note)}</strong>
+          <span>每个 Cache 现在展示两个题目相关块：上半行是块号/Tag/Data，下半行是 MSI 状态；右侧主存显示对应块的内存值和是否已过期。</span>
+        </div>
+      `;
+    }
+
+    function renderRequests(view) {
+      el("requestProgress").textContent = `${Math.min(Math.ceil(progress / 6), 4)} / 4`;
+      el("requestList").innerHTML = requests.map((request, index) => {
+        const active = view.current && view.current.index === index;
+        const done = progress > (index + 1) * 6;
+        return `<div class="request-row ${active ? "active" : ""} ${done ? "done" : ""}">
+          <span class="chip">${index + 1}</span>
+          <span><strong>${request.cpu}</strong> ${request.op === "READ" ? "读" : "写"} <span class="mono">${request.address}</span></span>
+          <span class="chip mono">${request.tag}/${request.index}</span>
+        </div>`;
+      }).join("");
+    }
+
+    function renderCpuGrid(view) {
+      const current = view.current;
+      const changed = new Set(view.changes.map((change) => `${change.cpu}-${change.index}`));
+      const snoopers = new Set(current && current.stage >= 5 ? current.analysis.matching : []);
+      el("cpuGrid").innerHTML = CPUs.map((cpu) => {
+        const active = current && current.request.cpu === cpu;
+        const snoop = snoopers.has(cpu);
+        const rows = view.caches[cpu].map((row) => {
+          const isCurrentIndex = current && row.index === current.request.index;
+          const isMatch = current && row.index === current.request.index && row.tag === current.request.tag && row.state !== "I";
+          const isChanged = changed.has(`${cpu}-${row.index}`);
+          return `<tr class="cache-row ${isCurrentIndex ? "current" : ""} ${isMatch ? "match" : ""} ${isChanged ? "changed" : ""}">
+            <td class="mono">${row.index}</td>
+            <td class="mono">${row.tag}</td>
+            <td class="mono">${row.data}</td>
+            <td>${stateChip(row.state)}</td>
+          </tr>`;
+        }).join("");
+        return `<section class="cpu-card ${active ? "active" : ""} ${snoop ? "snoop" : ""}">
+          <div class="cpu-head"><span>${cpu}</span>${active ? '<span class="chip s">发起者</span>' : (snoop ? '<span class="chip bus">监听命中</span>' : '<span class="chip">监听</span>')}</div>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>块号</th><th>Tag</th><th>Data</th><th>状态</th></tr></thead>
+              <tbody>${rows}</tbody>
+            </table>
+          </div>
+        </section>`;
+      }).join("");
+    }
+
+    function renderAddress(view) {
+      const request = view.current ? view.current.request : null;
+      el("addressText").textContent = request ? request.address : "--";
+      el("addrTag").textContent = request ? request.tag : "--";
+      el("addrIndex").textContent = request ? request.index : "--";
+      el("addrOffset").textContent = request ? request.offset : "--";
+    }
+
+    function renderBus(view) {
+      const current = view.current;
+      if (!current || current.stage < 5 || current.analysis.busAction === "Local") {
+        el("busText").textContent = "Bus: Idle";
+        el("sourceText").textContent = current && current.analysis.busAction === "Local"
+          ? "本次命中在本地完成，没有共享总线动作。"
+          : (current ? "当前还在本地判断阶段，尚未向总线广播。" : "当前没有共享总线请求。");
+        el("metricBus").textContent = current && current.stage >= 5 ? current.analysis.busAction : "空闲";
+        el("metricSource").textContent = current && current.stage >= 5 ? current.analysis.source : "无";
+        return;
+      }
+      el("busText").textContent = `Bus: ${current.analysis.busAction}(Tag=${current.request.tag}, Index=${current.request.index}) from ${current.request.cpu}`;
+      el("sourceText").textContent = `数据来源/影响：${current.analysis.source}`;
+      el("metricBus").textContent = current.analysis.busAction;
+      el("metricSource").textContent = current.analysis.source;
+    }
+
+    function renderMetrics(view) {
+      if (!view.current) {
+        el("metricRequest").textContent = "初始";
+        el("metricStage").textContent = "准备";
+        el("metricBus").textContent = "空闲";
+        el("metricSource").textContent = "无";
+      } else {
+        el("metricRequest").textContent = `${view.current.index + 1} / 4`;
+        el("metricStage").textContent = stageNames[view.current.stage - 1];
+      }
+      el("prevBtn").disabled = progress <= 0;
+      el("stepBtn").disabled = progress >= maxProgress;
+      el("runBtn").textContent = timer ? "暂停" : "自动运行";
+    }
+
+    function currentExplanation(view) {
+      if (!view.current) {
+        return [
+          "初始状态已载入。四个 CPU 的 Cache 只展示题目相关的 0H 和 1H 块。",
+          "点击“单步”开始：每个访存请求会拆成 6 个微步骤。"
+        ];
+      }
+      const { request, analysis, stage } = view.current;
+      const localRowText = `${request.cpu}[${request.index}] 原 Tag=${analysis.beforeTag}，状态=${analysis.beforeState}/${stateBits[analysis.beforeState]}`;
+      const lines = [`访存请求 ${view.current.index + 1}：${requestLabel(request)}`];
+      if (stage >= 1) lines.push(`地址拆解：${request.address} = Tag ${request.tag} + Index ${request.index} + Offset ${request.offset}。`);
+      if (stage >= 2) lines.push(`本地检查：${localRowText}，目标 Tag=${request.tag}。`);
+      if (stage >= 3) lines.push(`本地请求：${analysis.localRequest}，状态转换填 ${analysis.transition}。`);
+      if (stage >= 4) lines.push(`本地更新：${request.cpu}[${request.index}] ${analysis.beforeState}/${stateBits[analysis.beforeState]} -> ${analysis.afterState}/${stateBits[analysis.afterState]}；本地操作选 ${analysis.option}。`);
+      if (stage >= 5) {
+        if (analysis.busAction === "Local") lines.push("没有请求放到总线上，其他 CPU 不会被触发监听更新。");
+        else lines.push(`总线广播：${analysis.busAction}，其他 CPU 检查同一 Index 的 Tag 是否等于 ${request.tag}。`);
+      }
+      if (stage >= 6) {
+        if (!analysis.matching.length) {
+          lines.push("监听结果：没有其他有效副本命中，状态不变。");
+        } else {
+          const affected = analysis.matching.map((cpu) => {
+            const row = rowFor(view.caches, cpu, request.index);
+            return `${cpu}[${request.index}] -> ${row.state}/${stateBits[row.state]}`;
+          }).join("，");
+          lines.push(`监听结果：${affected}。`);
+        }
+      }
+      return lines;
+    }
+
+    function renderEventLog(view) {
+      el("eventLog").innerHTML = currentExplanation(view).map((line) => `<div class="log-item">${line}</div>`).join("");
+    }
+
+    function renderAnswers() {
+      const entries = Object.entries(answerMap).map(([key, value]) => {
+        const visible = showAnswers || progress >= answerVisibleProgress(Number(key));
+        return `<div class="answer-row"><span class="chip mono">(${key})</span><span class="mono">${visible ? value : "待推演"}</span></div>`;
+      }).join("");
+      el("answerList").innerHTML = entries;
+    }
+
+    function answerVisibleProgress(answerNo) {
+      if (answerNo <= 12) return Math.ceil(answerNo / 3) * 6;
+      return maxProgress;
+    }
+
+    function renderFinalGrid(view) {
+      const finalReady = progress >= maxProgress || showAnswers;
+      const displayCaches = finalReady ? view.caches : cloneCaches(initialCaches);
+      el("finalHint").textContent = finalReady ? "最终状态" : "完成后自动汇总";
+      el("finalGrid").innerHTML = CPUs.map((cpu) => {
+        const rows = displayCaches[cpu].map((row) => `<tr><td class="mono">${row.index}</td><td class="mono">${finalReady ? row.tag : "--"}</td><td class="mono">${finalReady ? row.data : "--"}</td><td>${finalReady ? stateChip(row.state) : '<span class="muted">--</span>'}</td></tr>`).join("");
+        return `<section class="mini-card">
+          <div class="mini-title">${cpu}</div>
+          <table><thead><tr><th>块号</th><th>Tag</th><th>Data</th><th>状态</th></tr></thead><tbody>${rows}</tbody></table>
+        </section>`;
+      }).join("");
+    }
+
+    function renderPracticePanel(view) {
+      const practice = el("modeSelect").value === "practice";
+      el("practicePanel").style.display = practice ? "block" : "none";
+      if (!practice) return;
+      const usable = view.current && view.current.stage >= 3;
+      el("checkBtn").disabled = !usable;
+      if (!usable) el("feedback").textContent = "推进到“本地请求分类”后，可以检查当前请求。";
+    }
+
+    function renderTabs() {
+      document.querySelectorAll(".tab-panel").forEach((panel) => { panel.hidden = true; });
+      el(`${activeTab}Tab`).hidden = false;
+      document.querySelectorAll(".tab-btn").forEach((button) => {
+        button.classList.toggle("active", button.dataset.tab === activeTab);
+      });
+    }
+
+    function render() {
+      const view = buildViewState();
+      renderRequests(view);
+      renderProtocolDiagram(view);
+      renderCpuGrid(view);
+      renderAddress(view);
+      renderBus(view);
+      renderMetrics(view);
+      renderEventLog(view);
+      renderAnswers();
+      renderFinalGrid(view);
+      renderPracticePanel(view);
+      renderTabs();
+    }
+
+    function stopRun() {
+      if (timer) {
+        window.clearInterval(timer);
+        timer = null;
+      }
+    }
+
+    function step() {
+      if (progress < maxProgress) progress += 1;
+      if (progress >= maxProgress) stopRun();
+      render();
+    }
+
+    function reset() {
+      stopRun();
+      progress = 0;
+      showAnswers = false;
+      el("answerBtn").textContent = "显示答案";
+      el("feedback").textContent = "";
+      ["guessRequest", "guessTransition", "guessOperation"].forEach((id) => { el(id).value = ""; });
+      render();
+    }
+
+    function checkPractice() {
+      const view = buildViewState();
+      if (!view.current) return;
+      const { analysis } = view.current;
+      const expected = {
+        request: analysis.localRequest,
+        transition: analysis.transition,
+        operation: analysis.option
+      };
+      const actual = {
+        request: el("guessRequest").value,
+        transition: el("guessTransition").value,
+        operation: el("guessOperation").value
+      };
+      const misses = [];
+      if (actual.request !== expected.request) misses.push(`本地请求应为 ${expected.request}`);
+      if (actual.transition !== expected.transition) misses.push(`状态转换应为 ${expected.transition}`);
+      if (actual.operation !== expected.operation) misses.push(`本地操作应选 ${expected.operation}`);
+      if (!misses.length) {
+        el("feedback").innerHTML = '<span class="chip ok">正确</span> 当前请求判断完全匹配。';
+      } else {
+        el("feedback").innerHTML = `<span class="chip bad">再想想</span> ${misses.join("；")}。`;
+      }
+    }
+
+    el("resetBtn").addEventListener("click", reset);
+    el("prevBtn").addEventListener("click", () => {
+      stopRun();
+      if (progress > 0) progress -= 1;
+      render();
+    });
+    el("stepBtn").addEventListener("click", () => {
+      stopRun();
+      step();
+    });
+    el("runBtn").addEventListener("click", () => {
+      if (timer) {
+        stopRun();
+        render();
+        return;
+      }
+      timer = window.setInterval(step, 900);
+      render();
+    });
+    el("answerBtn").addEventListener("click", () => {
+      showAnswers = !showAnswers;
+      el("answerBtn").textContent = showAnswers ? "隐藏答案" : "显示答案";
+      render();
+    });
+    el("modeSelect").addEventListener("change", render);
+    el("checkBtn").addEventListener("click", checkPractice);
+    document.querySelectorAll(".tab-btn").forEach((button) => {
+      button.addEventListener("click", () => {
+        activeTab = button.dataset.tab;
+        render();
+      });
+    });
+
+    render();
+  </script>
+</body>
+</html>
