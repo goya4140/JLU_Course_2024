@@ -131,8 +131,41 @@
               img.setAttribute('src', base + src);
             });
 
+            function normalizeMathText(root) {
+              if (!root) {
+                return;
+              }
+              var walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, {
+                acceptNode: function(node) {
+                  var parent = node.parentElement;
+                  if (!parent || parent.closest('pre, code, script, style, .katex')) {
+                    return NodeFilter.FILTER_REJECT;
+                  }
+                  return /\\(?:left|right)[{}]/.test(node.nodeValue || '')
+                    ? NodeFilter.FILTER_ACCEPT
+                    : NodeFilter.FILTER_SKIP;
+                }
+              });
+
+              var nodes = [];
+              while (walker.nextNode()) {
+                nodes.push(walker.currentNode);
+              }
+
+              nodes.forEach(function(node) {
+                node.nodeValue = node.nodeValue
+                  .replace(/\\left\{/g, '\\left\\{')
+                  .replace(/\\right\}/g, '\\right\\}')
+                  .replace(/\\left\}/g, '\\left\\}')
+                  .replace(/\\right\{/g, '\\right\\{');
+              });
+            }
+
+            var article = document.querySelector('.markdown-section');
+            normalizeMathText(article);
+
             if (window.renderMathInElement) {
-              window.renderMathInElement(document.querySelector('.markdown-section'), {
+              window.renderMathInElement(article, {
                 delimiters: [
                   { left: '$$', right: '$$', display: true },
                   { left: '$', right: '$', display: false },

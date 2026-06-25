@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Generate the Docsify sidebar from repository Markdown and PDF files."""
 
+import re
 from pathlib import Path
 from urllib.parse import quote
 
@@ -19,6 +20,19 @@ EXCLUDED_FILE_PARTS = {
 }
 
 INCLUDED_SUFFIXES = {".md", ".pdf"}
+
+OVERVIEW_FILES = [
+    ROOT / "课程总览.md",
+    ROOT / "大二下课程总览.md",
+]
+
+MICRO_COURSE_DIR = "2_2微机系统"
+MICRO_TYPE_ORDER = {
+    "复习资料": 0,
+    "习题精讲": 1,
+    "自学理解手册": 2,
+}
+MICRO_FILE_RE = re.compile(r"^(?P<number>\d+)_(?P<title>.+?)(?P<kind>习题精讲|自学理解手册)?$")
 
 SEMESTER_NAMES = {
     "1_1": "大一上",
@@ -47,7 +61,10 @@ def sort_key(path: Path) -> tuple[str, ...]:
 
 def title_for(path: Path) -> str:
     name = path.stem if path.suffix.lower() in INCLUDED_SUFFIXES else path.name
-    return display_name(name)
+    title = display_name(name)
+    if path.parent.name == "2_2概率论":
+        title = re.sub(r"\s+复习资料$", "", title)
+    return title
 
 
 def display_name(name: str) -> str:
@@ -72,8 +89,13 @@ def link_for(path: Path) -> str:
 def build_sidebar() -> str:
     lines = [
         "- [首页](README.md)",
-        "",
     ]
+
+    for overview in OVERVIEW_FILES:
+        if overview.exists() and should_include(overview):
+            lines.append(f"- [{title_for(overview)}]({link_for(overview)})")
+
+    lines.append("")
 
     semester_courses: dict[str, list[tuple[str, Path]]] = {}
     top_level_dirs = sorted(
@@ -112,6 +134,10 @@ def build_sidebar() -> str:
 
 
 def append_directory(lines: list[str], directory: Path, level: int) -> None:
+    if directory.name == MICRO_COURSE_DIR:
+        append_microcomputer_directory(lines, directory, level)
+        return
+
     files = sorted(
         (path for path in directory.iterdir() if path.is_file() and should_include(path)),
         key=sort_key,
@@ -133,6 +159,44 @@ def append_directory(lines: list[str], directory: Path, level: int) -> None:
     for child_dir in child_dirs:
         lines.append(f"{indent}- **{display_name(child_dir.name)}**")
         append_directory(lines, child_dir, level + 1)
+
+
+def append_microcomputer_directory(lines: list[str], directory: Path, level: int) -> None:
+    files = sorted(
+        (path for path in directory.iterdir() if path.is_file() and should_include(path)),
+        key=sort_key,
+    )
+    chapters: dict[str, dict[str, object]] = {}
+    standalone: list[Path] = []
+
+    for file_path in files:
+        match = MICRO_FILE_RE.match(file_path.stem)
+        if not match:
+            standalone.append(file_path)
+            continue
+
+        number = match.group("number")
+        kind = match.group("kind") or "复习资料"
+        title = display_name(match.group("title"))
+        chapter = chapters.setdefault(number, {"title": title, "items": []})
+        if kind == "复习资料":
+            chapter["title"] = title
+        chapter["items"].append((kind, file_path))
+
+    indent = "  " * level
+    child_indent = "  " * (level + 1)
+    for number in sorted(chapters, key=lambda value: int(value)):
+        chapter = chapters[number]
+        lines.append(f"{indent}- **第{number}章 {chapter['title']}**")
+        items = sorted(
+            chapter["items"],
+            key=lambda item: (MICRO_TYPE_ORDER.get(item[0], 99), sort_key(item[1])),
+        )
+        for kind, file_path in items:
+            lines.append(f"{child_indent}- [{kind}]({link_for(file_path)})")
+
+    for file_path in standalone:
+        lines.append(f"{indent}- [{title_for(file_path)}]({link_for(file_path)})")
 
 
 if __name__ == "__main__":
