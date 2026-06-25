@@ -82,7 +82,7 @@ def link_for(path: Path) -> str:
     relative = path.relative_to(ROOT).as_posix()
     encoded = quote(relative, safe="/")
     if path.suffix.lower() == ".pdf":
-        return f"{encoded} ':ignore'"
+        return f"/{encoded} ':ignore'"
     return f"/{encoded}"
 
 
