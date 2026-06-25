@@ -20,6 +20,13 @@ EXCLUDED_FILE_PARTS = {
 
 INCLUDED_SUFFIXES = {".md", ".pdf"}
 
+SEMESTER_NAMES = {
+    "1_1": "大一上",
+    "1_2": "大一下",
+    "2_1": "大二上",
+    "2_2": "大二下",
+}
+
 
 def should_include(path: Path) -> bool:
     relative = path.relative_to(ROOT)
@@ -40,7 +47,18 @@ def sort_key(path: Path) -> tuple[str, ...]:
 
 def title_for(path: Path) -> str:
     name = path.stem if path.suffix.lower() in INCLUDED_SUFFIXES else path.name
-    return name.replace("_", " ")
+    return display_name(name)
+
+
+def display_name(name: str) -> str:
+    return name.replace("_", " ").replace("  ", " ").strip()
+
+
+def split_course_dir(directory: Path) -> tuple[str, str]:
+    prefix = directory.name[:3]
+    semester = SEMESTER_NAMES.get(prefix, "其他")
+    course = directory.name[3:] if prefix in SEMESTER_NAMES else directory.name
+    return semester, display_name(course)
 
 
 def link_for(path: Path) -> str:
@@ -57,17 +75,37 @@ def build_sidebar() -> str:
         "",
     ]
 
-    top_level_dirs = [
-        item for item in sorted(ROOT.iterdir(), key=lambda p: p.name.casefold())
-        if item.is_dir() and item.name not in EXCLUDED_DIRS
-    ]
+    semester_courses: dict[str, list[tuple[str, Path]]] = {}
+    top_level_dirs = sorted(
+        (
+            item for item in ROOT.iterdir()
+            if item.is_dir() and item.name not in EXCLUDED_DIRS
+        ),
+        key=lambda p: p.name.casefold(),
+    )
 
     for directory in top_level_dirs:
         if not any(path.is_file() and should_include(path) for path in directory.rglob("*")):
             continue
+        semester, course = split_course_dir(directory)
+        semester_courses.setdefault(semester, []).append((course, directory))
 
-        lines.append(f"- **{directory.name}**")
-        append_directory(lines, directory, 1)
+    semester_order = [
+        *SEMESTER_NAMES.values(),
+        *sorted(
+            name for name in semester_courses
+            if name not in SEMESTER_NAMES.values()
+        ),
+    ]
+
+    for semester in semester_order:
+        courses = semester_courses.get(semester)
+        if not courses:
+            continue
+        lines.append(f"- **{semester}**")
+        for course, directory in courses:
+            lines.append(f"  - **{course}**")
+            append_directory(lines, directory, 2)
         lines.append("")
 
     return "\n".join(lines).rstrip() + "\n"
@@ -93,7 +131,7 @@ def append_directory(lines: list[str], directory: Path, level: int) -> None:
         lines.append(f"{indent}- [{title_for(file_path)}]({link_for(file_path)})")
 
     for child_dir in child_dirs:
-        lines.append(f"{indent}- **{child_dir.name}**")
+        lines.append(f"{indent}- **{display_name(child_dir.name)}**")
         append_directory(lines, child_dir, level + 1)
 
 

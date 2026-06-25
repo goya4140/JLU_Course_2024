@@ -6,11 +6,13 @@
   <meta name="description" content="JLU Course 2024 在线课程资料阅读站" />
   <title>JLU Course 2024</title>
   <link rel="stylesheet" href="//cdn.jsdelivr.net/npm/docsify@4/lib/themes/vue.css" />
+  <link rel="stylesheet" href="//cdn.jsdelivr.net/npm/docsify-sidebar-collapse/dist/sidebar.min.css" />
   <link rel="stylesheet" href="//cdn.jsdelivr.net/npm/katex@0.16.22/dist/katex.min.css" />
   <style>
     :root {
       --theme-color: #1f7a8c;
       --content-max-width: 980px;
+      --toc-width: 220px;
     }
 
     body {
@@ -19,6 +21,12 @@
 
     .markdown-section {
       max-width: var(--content-max-width);
+    }
+
+    @media (min-width: 1360px) {
+      .content {
+        right: var(--toc-width);
+      }
     }
 
     .markdown-section pre,
@@ -33,6 +41,47 @@
     .app-name-link img {
       max-width: 120px;
     }
+
+    .page-toc {
+      position: fixed;
+      top: 116px;
+      right: 24px;
+      width: var(--toc-width);
+      max-height: calc(100vh - 150px);
+      overflow: auto;
+      padding-left: 18px;
+      border-left: 1px solid #e5e7eb;
+      color: #53636f;
+      font-size: 13px;
+      line-height: 1.45;
+    }
+
+    .page-toc-title {
+      margin-bottom: 10px;
+      color: #263745;
+      font-weight: 700;
+    }
+
+    .page-toc a {
+      display: block;
+      padding: 4px 0;
+      color: #53636f;
+      text-decoration: none;
+    }
+
+    .page-toc a:hover {
+      color: var(--theme-color);
+    }
+
+    .page-toc-level-3 {
+      padding-left: 12px !important;
+    }
+
+    @media (max-width: 1359px) {
+      .page-toc {
+        display: none;
+      }
+    }
   </style>
 </head>
 <body>
@@ -46,7 +95,8 @@
         ? window.location.pathname
         : window.location.pathname.replace(/\/[^/]*$/, '/'),
       loadSidebar: '_sidebar.md',
-      subMaxLevel: 3,
+      subMaxLevel: 0,
+      sidebarDisplayLevel: 1,
       auto2top: true,
       relativePath: true,
       search: {
@@ -92,6 +142,39 @@
                 throwOnError: false
               });
             }
+
+            var oldToc = document.querySelector('.page-toc');
+            if (oldToc) {
+              oldToc.remove();
+            }
+
+            var headings = Array.from(document.querySelectorAll('.markdown-section h2, .markdown-section h3'))
+              .filter(function(heading) {
+                return heading.id && heading.textContent.trim();
+              })
+              .slice(0, 24);
+
+            if (headings.length > 1) {
+              var toc = document.createElement('nav');
+              toc.className = 'page-toc';
+              toc.setAttribute('aria-label', '本文目录');
+              var title = document.createElement('div');
+              title.className = 'page-toc-title';
+              title.textContent = '本文目录';
+              toc.appendChild(title);
+
+              var pageHash = window.location.hash.split('?')[0] || '#/';
+              headings.forEach(function(heading) {
+                var link = document.createElement('a');
+                var level = heading.tagName === 'H3' ? 3 : 2;
+                link.className = 'page-toc-level-' + level;
+                link.href = pageHash + '?id=' + encodeURIComponent(heading.id);
+                link.textContent = heading.textContent.replace(/^#\s*/, '').trim();
+                toc.appendChild(link);
+              });
+
+              document.body.appendChild(toc);
+            }
           });
         }
       ]
@@ -100,6 +183,7 @@
   <script src="//cdn.jsdelivr.net/npm/katex@0.16.22/dist/katex.min.js"></script>
   <script src="//cdn.jsdelivr.net/npm/katex@0.16.22/dist/contrib/auto-render.min.js"></script>
   <script src="//cdn.jsdelivr.net/npm/docsify@4/lib/docsify.min.js"></script>
+  <script src="//cdn.jsdelivr.net/npm/docsify-sidebar-collapse/dist/docsify-sidebar-collapse.min.js"></script>
   <script src="//cdn.jsdelivr.net/npm/docsify@4/lib/plugins/search.min.js"></script>
   <script src="//cdn.jsdelivr.net/npm/docsify-copy-code@2/dist/docsify-copy-code.min.js"></script>
   <script src="//cdn.jsdelivr.net/npm/docsify-pagination@2/dist/docsify-pagination.min.js"></script>
