@@ -87,6 +87,23 @@
 <body>
   <div id="app">正在加载课程资料...</div>
   <script>
+    window.__DOCS_VERSION__ = '2026-06-26-mathfix';
+
+    (function() {
+      var originalOpen = XMLHttpRequest.prototype.open;
+      XMLHttpRequest.prototype.open = function(method, url) {
+        if (method && method.toUpperCase() === 'GET' && typeof url === 'string') {
+          var cleanUrl = url.split('#')[0].split('?')[0];
+          var shouldBustCache = /(?:^|\/)(?:README|_sidebar|[^/]+)\.md$/.test(cleanUrl);
+          if (shouldBustCache) {
+            var separator = url.indexOf('?') === -1 ? '?' : '&';
+            url += separator + 'v=' + encodeURIComponent(window.__DOCS_VERSION__);
+          }
+        }
+        return originalOpen.apply(this, arguments.length > 2 ? [method, url].concat(Array.prototype.slice.call(arguments, 2)) : [method, url]);
+      };
+    })();
+
     window.$docsify = {
       name: 'JLU Course 2024',
       repo: 'goya4140/JLU_Course_2024',
@@ -161,6 +178,65 @@
               });
             }
 
+            function renderLooseInlineMath(root) {
+              if (!root || !window.katex) {
+                return;
+              }
+
+              var walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, {
+                acceptNode: function(node) {
+                  var parent = node.parentElement;
+                  if (!parent || parent.closest('pre, code, script, style, .katex')) {
+                    return NodeFilter.FILTER_REJECT;
+                  }
+                  var text = node.nodeValue || '';
+                  return /\$[^$\n]+\$/.test(text)
+                    ? NodeFilter.FILTER_ACCEPT
+                    : NodeFilter.FILTER_SKIP;
+                }
+              });
+
+              var nodes = [];
+              while (walker.nextNode()) {
+                nodes.push(walker.currentNode);
+              }
+
+              nodes.forEach(function(node) {
+                var text = node.nodeValue || '';
+                var fragment = document.createDocumentFragment();
+                var cursor = 0;
+                var changed = false;
+                var pattern = /\$([^$\n]+)\$/g;
+                var match;
+
+                while ((match = pattern.exec(text)) !== null) {
+                  var formula = match[1].trim();
+                  if (!formula) {
+                    continue;
+                  }
+
+                  fragment.appendChild(document.createTextNode(text.slice(cursor, match.index)));
+                  try {
+                    var span = document.createElement('span');
+                    span.innerHTML = window.katex.renderToString(formula, {
+                      displayMode: false,
+                      throwOnError: false
+                    });
+                    fragment.appendChild(span);
+                    changed = true;
+                  } catch (error) {
+                    fragment.appendChild(document.createTextNode(match[0]));
+                  }
+                  cursor = match.index + match[0].length;
+                }
+
+                if (changed) {
+                  fragment.appendChild(document.createTextNode(text.slice(cursor)));
+                  node.parentNode.replaceChild(fragment, node);
+                }
+              });
+            }
+
             var article = document.querySelector('.markdown-section');
             normalizeMathText(article);
 
@@ -175,6 +251,7 @@
                 throwOnError: false
               });
             }
+            renderLooseInlineMath(article);
 
             var oldToc = document.querySelector('.page-toc');
             if (oldToc) {
